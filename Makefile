@@ -1,5 +1,5 @@
 venv/bin/python:
-	virtualenv venv --python=`which python2`
+	virtualenv venv
 
 venv/bin/flake8: venv/bin/python
 	venv/bin/pip install flake8
