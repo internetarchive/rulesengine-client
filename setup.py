@@ -10,6 +10,7 @@ setup(
     ],
     test_requires=[
         'mock',
+        'requests',
     ],
     packages=[
         'rulesengine_client',
