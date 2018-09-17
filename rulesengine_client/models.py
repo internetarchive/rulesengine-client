@@ -1,10 +1,10 @@
 from datetime import (
     datetime,
     timedelta,
-    timezone,
 )
 from dateutil.parser import parse as parse_date
 import ipaddr
+from pytz import utc
 import re
 
 
@@ -15,7 +15,7 @@ class Rule(object):
                  retrieve_date=None, ip_range=None, seconds_since_capture=None,
                  collection=None, partner=None, warc_match=None,
                  rewrite_from=None, rewrite_to=None, private_comment=None,
-                 public_comment=None):
+                 public_comment=None, enabled=True):
         self.surt = surt
         self.policy = policy
         self.neg_surt = neg_surt
@@ -27,36 +27,36 @@ class Rule(object):
         self.rewrite_to = rewrite_to
         self.private_comment = private_comment
         self.public_comment = public_comment
+        self.enabled = enabled
 
         # Parse dates out of capture and retrieval date fields if necessary.
-        if (capture_date and self.capture_date['start'] and
-                capture_date['end']):
+        if (capture_date and capture_date['start'] and capture_date['end']):
             self.capture_date = {
                 'start': parse_date(capture_date['start']),
                 'end': parse_date(capture_date['end']),
             }
         else:
             self.capture_date = None
-        if (self.retrieve_date and self.retrieve_date['start'] and
-                self.retrieve_date['end']):
+        if (retrieve_date and retrieve_date['start'] and retrieve_date['end']):
             self.retrieve_date = {
-                'start': parse_date(self.retrieve_date['start']),
-                'end': parse_date(self.retrieve_date['end']),
+                'start': parse_date(retrieve_date['start']),
+                'end': parse_date(retrieve_date['end']),
             }
         else:
             self.retrieve_date = None
 
         # Parse IP addresses if necessary.
-        if (self.ip_range and self.ip_range['start'] and self.ip_range['end']):
+        if (ip_range and ip_range['start'] and ip_range['end']):
             self.ip_range = {
-                'start': ipaddr.IPAddress(self.ip_range['start']),
-                'end': ipaddr.IPAddress(self.ip_range['end']),
+                'start': ipaddr.IPAddress(ip_range['start']),
+                'end': ipaddr.IPAddress(ip_range['end']),
             }
         else:
             self.ip_range = None
 
     def applies(self, warc_name, client_ip, capture_date, collection=None,
-                partner=None, server_side_filters=True):
+                retrieve_date=datetime.now(tz=utc), partner=None,
+                server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
         information.
 
@@ -79,8 +79,9 @@ class Rule(object):
         return (
             self.enabled and
             self.ip_range_applies(client_ip) and
+            self.seconds_since_capture_applies(capture_date) and
             self.capture_date_applies(capture_date) and
-            self.retrieve_date_applies(datetime.now(timezone.utc)) and
+            self.retrieve_date_applies(retrieve_date) and
             self.warc_match_applies(warc_name) and
             self.collection_applies(collection) and
             self.partner_applies(partner))
@@ -120,7 +121,7 @@ class Rule(object):
         if self.seconds_since_capture is None:
             return True
         return (timedelta(seconds=int(self.seconds_since_capture)) >=
-                (datetime.now(timezone.utc) - capture_date))
+                (datetime.now(tz=utc) - capture_date))
 
     def capture_date_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
@@ -139,7 +140,7 @@ class Rule(object):
         return (self.capture_date['start'] <= capture_date and
                 self.capture_date['end'] >= capture_date)
 
-    def retrieve_date_applies(self, retrieve_date):
+    def retrieve_date_applies(self, retrieve_date=datetime.now(tz=utc)):
         """Checks to see whether the rule applies based on the date of
         retrieval.
 

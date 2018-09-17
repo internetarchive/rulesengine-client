@@ -6,11 +6,13 @@ setup(
     description='Client for interacting with the Playback Rules Engine',
     version='0.1',
     install_requires=[
+        'python-dateutil',
+        'ipaddr',
+        'pytz',
         'requests',
     ],
-    test_requires=[
+    tests_require=[
         'mock',
-        'requests',
     ],
     packages=[
         'rulesengine_client',
