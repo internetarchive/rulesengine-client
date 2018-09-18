@@ -12,7 +12,7 @@ except ImportError:
 
 from ..models import (
     Rule,
-    # RuleCollection,
+    RuleCollection,
 )
 
 
@@ -176,3 +176,66 @@ class RuleModelTestCase(unittest.TestCase):
             'http://(com,example,)',
             'block')
         self.assertEqual(rule.partner_applies('Holst'), True)
+
+
+class RuleCollectionModelTestCase(unittest.TestCase):
+
+    def test_init_and_sort(self):
+        rules = [
+            Rule('http://(com,example,a)', 'block'),
+            Rule('http://(com,example,c)', 'block'),
+            Rule('http://(com,example,b)', 'block'),
+        ]
+        collection = RuleCollection(rules)
+        self.assertEqual(
+            [rule.surt for rule in collection.rules],
+            [
+                'http://(com,example,a)',
+                'http://(com,example,b)',
+                'http://(com,example,c)',
+            ])
+
+    def test_filter_applicable_rules(self):
+        collection = RuleCollection([
+            Rule('http://(com,example,a)', 'block', partner='Holst'),
+            Rule('http://(com,example,c)', 'block', partner='Holst'),
+            Rule('http://(com,example,b)', 'block', partner='Bizet'),
+        ])
+        collection.filter_applicable_rules(
+            'warc', '0.0.0.0', partner='Holst', server_side_filters=False)
+        self.assertEqual(
+            [rule.surt for rule in collection.rules],
+            [
+                'http://(com,example,a)',
+                'http://(com,example,c)',
+            ])
+
+    def test_allow(self):
+        collection = RuleCollection([
+            Rule('http://(com,', 'block'),
+            Rule('http://(com,example,', 'block'),
+            Rule('http://(com,example,a)', 'allow'),
+        ])
+        self.assertEqual(collection.allow(), True)
+        collection = RuleCollection([
+            Rule('http://(com,', 'block'),
+            Rule('http://(com,example,', 'allow'),
+            Rule('http://(com,example,a)', 'block'),
+        ])
+        self.assertEqual(collection.allow(), False)
+        collection = RuleCollection([
+            Rule('http://(com,', 'block'),
+            Rule('http://(com,example,', 'allow'),
+            Rule('http://(com,example,a)', 'rewrite-js'),
+        ])
+        self.assertEqual(collection.allow(), True)
+
+    def test_rewrites_only(self):
+        collection = RuleCollection([
+            Rule('http://(com,', 'block'),
+            Rule('http://(com,example,', 'block'),
+            Rule('http://(com,example,a)', 'rewrite-js'),
+        ])
+        rewrites_only = collection.rewrites_only()
+        self.assertEqual([rule.surt for rule in rewrites_only.rules],
+                         ['http://(com,example,a)'])

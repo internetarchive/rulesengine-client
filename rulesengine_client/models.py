@@ -54,9 +54,9 @@ class Rule(object):
         else:
             self.ip_range = None
 
-    def applies(self, warc_name, client_ip, capture_date, collection=None,
-                retrieve_date=datetime.now(tz=utc), partner=None,
-                server_side_filters=True):
+    def applies(self, warc_name, client_ip, capture_date,
+                retrieve_date=datetime.now(tz=utc), collection=None,
+                partner=None, server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
         information.
 
@@ -213,6 +213,7 @@ class RuleCollection(object):
         self.sort_rules()
 
     def filter_applicable_rules(self, warc_name, client_ip, capture_date=None,
+                                retrieve_date=datetime.now(tz=utc),
                                 collection=None, partner=None,
                                 server_side_filters=True):
         """Filters the rules to only those which apply to the request.
@@ -253,7 +254,12 @@ class RuleCollection(object):
         policies = [rule.policy for rule in self.rules]
         allow = False
         for policy in policies:
-            allow = policy == 'allow'
+            # Allow decisions only rely on 'allow' and 'block' policies. No
+            # decision is made for rewrite policies.
+            if policy == 'allow':
+                allow = True
+            elif policy == 'block':
+                allow = False
         return allow
 
     def rewrites_only(self):
