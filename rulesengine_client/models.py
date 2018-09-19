@@ -15,7 +15,7 @@ class Rule(object):
                  retrieve_date=None, ip_range=None, seconds_since_capture=None,
                  collection=None, partner=None, warc_match=None,
                  rewrite_from=None, rewrite_to=None, private_comment=None,
-                 public_comment=None, enabled=True):
+                 public_comment=None, enabled=True, environment='prod'):
         self.surt = surt
         self.policy = policy
         self.neg_surt = neg_surt
@@ -28,6 +28,7 @@ class Rule(object):
         self.private_comment = private_comment
         self.public_comment = public_comment
         self.enabled = enabled
+        self.environment = environment
 
         # Parse dates out of capture and retrieval date fields if necessary.
         if (capture_date and capture_date['start'] and capture_date['end']):
