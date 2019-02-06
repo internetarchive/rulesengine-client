@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name='rulesengine_client',
     description='Client for interacting with the Playback Rules Engine',
-    version='0.1.1',
+    version='0.2.0',
     install_requires=[
         'python-dateutil',
         'ipaddr',

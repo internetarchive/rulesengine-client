@@ -1,9 +1,9 @@
 venv/bin/python:
-	virtualenv venv --python=`which python`
+	virtualenv venv
 	venv/bin/pip install -r requirements.txt
 
 .PHONY: install
-install:
+install: venv/bin/python
 	venv/bin/python setup.py install
 
 .PHONY: check
