@@ -7,6 +7,8 @@ import ipaddr
 from pytz import utc
 import re
 
+from .exceptions import MalformedResponseException
+
 
 class Rule(object):
     """Rule represents a rule received from the rulesengine server."""
@@ -54,6 +56,27 @@ class Rule(object):
             }
         else:
             self.ip_range = None
+
+    @classmethod
+    def from_response(cls, response):
+        """Build a Rule from the results of a query to the server."""
+        if 'surt' not in response or 'policy' not in response:
+            raise MalformedResponseException(
+                'rules must contain at least a surt and a policy')
+        return cls(
+            response['surt'],
+            response['policy'],
+            neg_surt=response.get('neg_surt'),
+            seconds_since_capture=response.get('seconds_since_capture'),
+            collection=response.get('collection'),
+            partner=response.get('partner'),
+            warc_match=response.get('warc_match'),
+            rewrite_from=response.get('rewrite_from'),
+            rewrite_to=response.get('rewrite_to'),
+            private_comment=response.get('private_comment'),
+            public_comment=response.get('public_comment'),
+            enabled=response.get('enabled'),
+            environment=response.get('environment'))
 
     def applies(self, warc_name, client_ip, capture_date,
                 retrieve_date=datetime.now(tz=utc), collection=None,
@@ -213,6 +236,18 @@ class RuleCollection(object):
         self.rules = rules
         self.sort_rules()
 
+    @classmethod
+    def from_response(cls, response):
+        """Build a RuleCollection from the results of a query to the server."""
+        rules = []
+        for rule in response:
+            rules.append(Rule.from_response(rule))
+        return cls(rules)
+
+    def sort_rules(self):
+        """Sorts the rules on the surts."""
+        self.rules.sort(key=lambda x: x.surt)
+
     def filter_applicable_rules(self, warc_name, client_ip, capture_date=None,
                                 retrieve_date=datetime.now(tz=utc),
                                 collection=None, partner=None,
@@ -241,10 +276,6 @@ class RuleCollection(object):
             partner=partner,
             server_side_filters=server_side_filters)]
         self.sort_rules()
-
-    def sort_rules(self):
-        """Sorts the rules on the surts."""
-        self.rules.sort(key=lambda x: x.surt)
 
     def allow(self):
         """Decies whether to allow a playback based on the collection of

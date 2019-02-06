@@ -20,7 +20,7 @@ class ClientTestCase(unittest.TestCase):
     def test_get_rules(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.get_rules()
         self.assertEqual(result.status_code, 200)
@@ -30,7 +30,7 @@ class ClientTestCase(unittest.TestCase):
     def test_create_rule(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.create_rule({})
         self.assertEqual(result.status_code, 200)
@@ -40,7 +40,7 @@ class ClientTestCase(unittest.TestCase):
     def test_get_rule(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.get_rule(1)
         self.assertEqual(result.status_code, 200)
@@ -50,7 +50,7 @@ class ClientTestCase(unittest.TestCase):
     def test_update_rule(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.update_rule(1, {})
         self.assertEqual(result.status_code, 200)
@@ -61,7 +61,7 @@ class ClientTestCase(unittest.TestCase):
     def test_delete_rule(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.delete_rule(1)
         self.assertEqual(result.status_code, 200)
@@ -71,7 +71,7 @@ class ClientTestCase(unittest.TestCase):
     def test_tree_for_surt(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.tree_for_surt('http://(org,archive,)')
         self.assertEqual(result.status_code, 200)
@@ -82,7 +82,7 @@ class ClientTestCase(unittest.TestCase):
     def test_rules_for_request(self, mock_request):
         mock_request.return_value = StubResponse(
             200,
-            '{"status": "success", "message": "ok", "result": [1, 2, 3]}')
+            '{"status": "success", "message": "ok", "result": []}')
         c = Client('http://localhost')
         result = c.rules_for_request('http://(org,archive,)', 'today')
         self.assertEqual(result.status_code, 200)

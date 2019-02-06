@@ -1,4 +1,5 @@
 from .exceptions import MalformedResponseException
+from .models import RuleCollection
 
 
 class Response(object):
@@ -14,3 +15,15 @@ class Response(object):
         self.message = self.json['message']
         if 'result' in self.json:
             self.result = self.json['result']
+        self.rules = None
+        if self.status == 'success':
+            self._parse_result()
+
+    def _parse_result(self):
+        if isinstance(self.result, list):
+            self.rules = RuleCollection.from_response(self.result)
+        elif isinstance(self.result, dict):
+            self.rules = RuleCollection.from_response([self.result])
+        else:
+            raise MalformedResponseException(
+                'received unexpected result', self.result)
