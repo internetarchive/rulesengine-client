@@ -284,7 +284,7 @@ class RuleCollection(object):
         :return: True if the playback is allowed.
         """
         policies = [rule.policy for rule in self.rules]
-        allow = False
+        allow = True
         for policy in policies:
             # Allow decisions only rely on 'allow' and 'block' policies. No
             # decision is made for rewrite policies.
