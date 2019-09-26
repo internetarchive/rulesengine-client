@@ -37,8 +37,9 @@ class Client(object):
                           collection=None, partner=None):
         p = {
             'surt': surt,
-            'capture-date': capture_date,
         }
+        if capture_date is not None:
+            p['capture-date'] = capture_date
         if neg_surt is not None:
             p['neg-surt'] = neg_surt
         if collection is not None:
