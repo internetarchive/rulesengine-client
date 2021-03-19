@@ -216,7 +216,7 @@ class Rule(object):
         """Checks to see whether the rule applies based on the capture's
         partner.
 
-        If the rule has an partner, it will check to see wether the
+        If the rule has a partner, it will check to see whether the
         capture's partner matches. If not, it's assumed that the
         rule applies.
 
@@ -256,7 +256,7 @@ class RuleCollection(object):
 
         Before checking whether a request is allowed or applying any rewrites,
         this method should be run on the rule collection to ensure that only
-        the appropriaterules are included.
+        the appropriate rules are included.
 
         :param str warc_name: the name of the WARC file containing the capture.
         :param client_ip: the client's IP address
@@ -278,8 +278,10 @@ class RuleCollection(object):
         self.sort_rules()
 
     def allow(self):
-        """Decies whether to allow a playback based on the collection of
+        """Decides whether to allow a playback based on the collection of
         rules.
+
+        todo: handle message (old block-message) rules
 
         :return: True if the playback is allowed.
         """
@@ -301,3 +303,7 @@ class RuleCollection(object):
         """
         return RuleCollection(
             [rule for rule in self.rules if rule.policy.startswith('rewrite')])
+
+    def rewrite(self, content):
+        # initial test NOP
+        return content
