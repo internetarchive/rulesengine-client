@@ -305,5 +305,7 @@ class RuleCollection(object):
             [rule for rule in self.rules if rule.policy.startswith('rewrite')])
 
     def rewrite(self, content):
-        # initial test NOP
-        return content
+        rewritten_content = content.decode()
+        for r in self.rules:
+            rewritten_content = re.sub(r.rewrite_from, r.rewrite_to, rewritten_content)
+        return rewritten_content.encode()
