@@ -38,6 +38,7 @@ class RuleModelTestCase(unittest.TestCase):
             seconds_since_capture=31536000,
             collection='The Planets',
             partner='Gustav Holst',
+            protocol='http',
             warc_match='.*jupiter.*')
         self.assertEqual(
             rule.capture_date['start'],
@@ -63,6 +64,7 @@ class RuleModelTestCase(unittest.TestCase):
             ipaddr.IPAddress('8.8.8.8'))
 
     @patch('rulesengine_client.models.Rule.ip_range_applies')
+    @patch('rulesengine_client.models.Rule.protocol_applies')
     @patch('rulesengine_client.models.Rule.seconds_since_capture_applies')
     @patch('rulesengine_client.models.Rule.capture_date_applies')
     @patch('rulesengine_client.models.Rule.retrieve_date_applies')
@@ -72,10 +74,11 @@ class RuleModelTestCase(unittest.TestCase):
     def test_applies(self, partner_applies, collection_applies,
                      warc_match_applies, retrieve_date_applies,
                      capture_date_applies, seconds_since_capture_applies,
-                     ip_range_applies):
+                     ip_range_applies, protocol_applies):
         rule = Rule('http://(com,example,)', 'block')
         rule.applies('warc', '0.0.0.0', datetime.now(tz=utc))
         self.assertEqual(ip_range_applies.call_count, 1)
+        self.assertEqual(protocol_applies.call_count, 1)
         self.assertEqual(seconds_since_capture_applies.call_count, 1)
         self.assertEqual(capture_date_applies.call_count, 0)
         self.assertEqual(retrieve_date_applies.call_count, 0)
@@ -85,6 +88,7 @@ class RuleModelTestCase(unittest.TestCase):
         rule.applies('warc', '0.0.0.0', datetime.now(tz=utc),
                      server_side_filters=False)
         self.assertEqual(ip_range_applies.call_count, 2)
+        self.assertEqual(protocol_applies.call_count, 2)
         self.assertEqual(seconds_since_capture_applies.call_count, 2)
         self.assertEqual(capture_date_applies.call_count, 1)
         self.assertEqual(retrieve_date_applies.call_count, 1)
@@ -177,6 +181,17 @@ class RuleModelTestCase(unittest.TestCase):
             'block')
         self.assertEqual(rule.partner_applies('Holst'), True)
 
+    def test_protocol_applies(self):
+        rule = Rule(
+            'http://(com,example,)',
+            'block',
+            protocol='http')
+        self.assertEqual(rule.protocol_applies('http'), True)
+        self.assertEqual(rule.protocol_applies('https'), False)
+        rule = Rule(
+            'http://(com,example,)',
+            'block')
+        self.assertEqual(rule.protocol_applies('https'), True)
 
 class RuleCollectionModelTestCase(unittest.TestCase):
 
