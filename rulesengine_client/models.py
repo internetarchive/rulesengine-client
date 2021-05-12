@@ -15,7 +15,7 @@ class Rule(object):
 
     def __init__(self, surt, policy, neg_surt=None, capture_date=None,
                  retrieve_date=None, ip_range=None, seconds_since_capture=None,
-                 collection=None, partner=None, warc_match=None,
+                 collection=None, partner=None, protocol=None, warc_match=None,
                  rewrite_from=None, rewrite_to=None, private_comment=None,
                  public_comment=None, enabled=True, environment='prod'):
         self.surt = surt
@@ -24,6 +24,7 @@ class Rule(object):
         self.seconds_since_capture = seconds_since_capture
         self.collection = collection
         self.partner = partner
+        self.protocol = protocol
         self.warc_match = warc_match
         self.rewrite_from = rewrite_from
         self.rewrite_to = rewrite_to
@@ -80,7 +81,7 @@ class Rule(object):
 
     def applies(self, warc_name, client_ip, capture_date,
                 retrieve_date=datetime.now(tz=utc), collection=None,
-                partner=None, server_side_filters=True):
+                partner=None, protocol=None, server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
         information.
 
@@ -99,6 +100,7 @@ class Rule(object):
         if server_side_filters:
             return (self.warc_match_applies(warc_name) and
                     self.ip_range_applies(client_ip) and
+                    self.protocol_applies(protocol) and
                     self.seconds_since_capture_applies(capture_date))
         return (
             self.enabled and
@@ -108,7 +110,8 @@ class Rule(object):
             self.retrieve_date_applies(retrieve_date) and
             self.warc_match_applies(warc_name) and
             self.collection_applies(collection) and
-            self.partner_applies(partner))
+            self.partner_applies(partner) and
+            self.protocol_applies(protocol))
 
     def ip_range_applies(self, client_ip):
         """Checks to see whether the rule applies based on the client's IP
@@ -129,6 +132,22 @@ class Rule(object):
             client_ip = ipaddr.IPAddress(client_ip)
         return (self.ip_range['start'] <= client_ip and
                 self.ip_range['end'] >= client_ip)
+
+    def protocol_applies(self, protocol):
+        """Check to see whether the rule applies based on the query protocol.
+
+        If the rule defines a protocol, we check to see if the
+        query protocol matches.
+
+        :param protocol: the query's protocol
+        :type protocol: str
+
+        :return: True if the rule defines no protocol, or rule protocol
+        matches param protocol, otherwise False.
+        """
+        if self.protocol is None:
+            return True
+        return self.protocol == protocol
 
     def seconds_since_capture_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
@@ -216,7 +235,7 @@ class Rule(object):
         """Checks to see whether the rule applies based on the capture's
         partner.
 
-        If the rule has an partner, it will check to see wether the
+        If the rule has a partner, it will check to see whether the
         capture's partner matches. If not, it's assumed that the
         rule applies.
 
@@ -250,13 +269,13 @@ class RuleCollection(object):
 
     def filter_applicable_rules(self, warc_name, client_ip, capture_date=None,
                                 retrieve_date=datetime.now(tz=utc),
-                                collection=None, partner=None,
+                                collection=None, partner=None, protocol=None,
                                 server_side_filters=True):
         """Filters the rules to only those which apply to the request.
 
         Before checking whether a request is allowed or applying any rewrites,
         this method should be run on the rule collection to ensure that only
-        the appropriaterules are included.
+        the appropriate rules are included.
 
         :param str warc_name: the name of the WARC file containing the capture.
         :param client_ip: the client's IP address
@@ -274,12 +293,15 @@ class RuleCollection(object):
             capture_date=capture_date,
             collection=collection,
             partner=partner,
+            protocol=protocol,
             server_side_filters=server_side_filters)]
         self.sort_rules()
 
     def allow(self):
-        """Decies whether to allow a playback based on the collection of
+        """Decides whether to allow a playback based on the collection of
         rules.
+
+        todo: handle message (old block-message) rules
 
         :return: True if the playback is allowed.
         """
@@ -301,3 +323,9 @@ class RuleCollection(object):
         """
         return RuleCollection(
             [rule for rule in self.rules if rule.policy.startswith('rewrite')])
+
+    def rewrite(self, content):
+        rewritten_content = content.decode()
+        for r in self.rules:
+            rewritten_content = re.sub(r.rewrite_from, r.rewrite_to, rewritten_content)
+        return rewritten_content.encode()
