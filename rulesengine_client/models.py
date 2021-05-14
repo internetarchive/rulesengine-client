@@ -6,6 +6,7 @@ from dateutil.parser import parse as parse_date
 import ipaddr
 from pytz import utc
 import re
+from warcio.timeutils import datetime_to_timestamp
 
 from .exceptions import MalformedResponseException
 
@@ -34,18 +35,25 @@ class Rule(object):
         self.environment = environment
 
         # Parse dates out of capture and retrieval date fields if necessary.
-        if (capture_date and capture_date['start'] and capture_date['end']):
-            self.capture_date = {
-                'start': parse_date(capture_date['start']),
-                'end': parse_date(capture_date['end']),
-            }
+        #
+        # Note: we compare capture date only when checking exclusions,
+        # server_side_filters=False ...
+        if capture_date:
+            self.capture_date = {'start': None, 'end': None}
+            if capture_date['start']:
+                self.capture_date['start'] = datetime_to_timestamp(parse_date(capture_date['start'])).encode()
+            if capture_date['end']:
+                self.capture_date['end'] = datetime_to_timestamp(parse_date(capture_date['end'])).encode()
         else:
             self.capture_date = None
-        if (retrieve_date and retrieve_date['start'] and retrieve_date['end']):
-            self.retrieve_date = {
-                'start': parse_date(retrieve_date['start']),
-                'end': parse_date(retrieve_date['end']),
-            }
+
+        # we compare retrieve_date only to datetime
+        if retrieve_date:
+            self.retrieve_date = {'start': None, 'end': None}
+            if retrieve_date['start']:
+                self.retrieve_date['start'] =  parse_date(retrieve_date['start'])
+            if retrieve_date['end']:
+                self.retrieve_date['end'] = parse_date(retrieve_date['end'])
         else:
             self.retrieve_date = None
 
@@ -64,9 +72,27 @@ class Rule(object):
         if 'surt' not in response or 'policy' not in response:
             raise MalformedResponseException(
                 'rules must contain at least a surt and a policy')
+        if 'capture_date' in response:
+            capture_date = {'start': None, 'end': None}
+            if 'start' in response['capture_date']:
+                capture_date['start'] = response['capture_date']['start']
+            if 'end' in response['capture_date']:
+                capture_date['end'] = response['capture_date']['end']
+        else:
+            capture_date = None
+        if 'retrieve_date' in response:
+            retrieve_date = {'start': None, 'end': None}
+            if 'start' in response['retrieve_date']:
+                retrieve_date['start'] = response['retrieve_date']['start']
+            if 'end' in response['retrieve_date']:
+                retrieve_date['end'] = response['retrieve_date']['end']
+        else:
+            retrieve_date = None
         return cls(
             response['surt'],
             response['policy'],
+            capture_date = capture_date,
+            retrieve_date = retrieve_date,
             neg_surt=response.get('neg_surt'),
             seconds_since_capture=response.get('seconds_since_capture'),
             collection=response.get('collection'),
@@ -170,7 +196,7 @@ class Rule(object):
         """Checks to see whether the rule applies based on the date of
         capture.
 
-        If the rule has an capture date range, it will check to see whether the
+        If the rule has a capture date range, it will check to see whether the
         capture date falls within that range. If not, it's assumed that the
         rule applies.
 
@@ -178,10 +204,10 @@ class Rule(object):
 
         :return: True if the rule applies for this check, otherwise False.
         """
-        if self.capture_date is None:
+        if not self.capture_date:
             return True
-        return (self.capture_date['start'] <= capture_date and
-                self.capture_date['end'] >= capture_date)
+        return ((not self.capture_date['start'] or self.capture_date['start'] <= capture_date) and
+                (not self.capture_date['end'] or self.capture_date['end'] >= capture_date))
 
     def retrieve_date_applies(self, retrieve_date=datetime.now(tz=utc)):
         """Checks to see whether the rule applies based on the date of
@@ -195,10 +221,10 @@ class Rule(object):
 
         :return: True if the rule applies for this check, otherwise False.
         """
-        if self.retrieve_date is None:
+        if not self.retrieve_date:
             return True
-        return (self.retrieve_date['start'] <= retrieve_date and
-                self.retrieve_date['end'] >= retrieve_date)
+        return ((not self.retrieve_date['start'] or self.retrieve_date['start'] <= retrieve_date) and
+                (not self.retrieve_date['end'] or self.retrieve_date['end'] >= retrieve_date))
 
     def warc_match_applies(self, warc_name):
         """Checks to see whether the rule applies based on a regex of the WARC
