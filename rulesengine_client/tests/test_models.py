@@ -42,12 +42,10 @@ class RuleModelTestCase(unittest.TestCase):
             warc_match='.*jupiter.*')
         self.assertEqual(
             rule.capture_date['start'],
-            datetime(year=2000, month=1, day=1, hour=12, minute=0, second=0,
-                     tzinfo=utc))
+            '20000101120000'.encode())
         self.assertEqual(
             rule.capture_date['end'],
-            datetime(year=2001, month=1, day=1, hour=12, minute=0, second=0,
-                     tzinfo=utc))
+            '20010101120000'.encode())
         self.assertEqual(
             rule.retrieve_date['start'],
             datetime(year=2000, month=1, day=1, hour=12, minute=0, second=0,
@@ -127,19 +125,22 @@ class RuleModelTestCase(unittest.TestCase):
         rule = Rule(
             'http://(com,example,)',
             'block',
+            # compare block rule capture dates to timestamps as bytes
             capture_date={
-                'start': '2000-01-01T12:00:00.000Z',
-                'end': '2001-01-01T12:00:00.000Z',
+                # 'start': '2000-01-01T12:00:00.000Z',
+                # 'end': '2001-01-01T12:00:00.000Z',
+                'start': '20000101120000'.encode(),
+                'end': '20010101120000'.encode(),
             })
         self.assertEqual(
-            rule.capture_date_applies(datetime(2000, 1, 2, tzinfo=utc)),
+            rule.capture_date_applies('20000102000000'.encode()),
             True)
         self.assertEqual(
-            rule.capture_date_applies(datetime(2002, 1, 2, tzinfo=utc)),
+            rule.capture_date_applies('20020102000000'.encode()),
             False)
         rule = Rule('http://(com,example,)', 'block')
         self.assertEqual(
-            rule.capture_date_applies(datetime(2000, 1, 2, tzinfo=utc)),
+            rule.capture_date_applies('20000102000000'.encode()),
             True)
 
     def test_retieve_date_applies(self):
