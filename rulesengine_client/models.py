@@ -7,6 +7,7 @@ import ipaddr
 from pytz import utc
 import re
 from warcio.timeutils import datetime_to_timestamp
+import ipdb
 
 from .exceptions import MalformedResponseException
 
@@ -36,14 +37,18 @@ class Rule(object):
 
         # Parse dates out of capture and retrieval date fields if necessary.
         #
-        # Note: we compare capture date only when checking exclusions,
-        # server_side_filters=False ...
+        # Note: we compare capture date here mostly when checking blocks,
+        # to a bytes timestamp from a cdx record, server_side_filters=False
         if capture_date:
             self.capture_date = {'start': None, 'end': None}
             if capture_date['start']:
-                self.capture_date['start'] = datetime_to_timestamp(parse_date(capture_date['start'])).encode()
+                self.capture_date['start'] = parse_date(capture_date['start'])
+                if not self.policy.startswith('rewrite'):
+                    self.capture_date['start'] = datetime_to_timestamp(self.capture_date['start']).encode()
             if capture_date['end']:
-                self.capture_date['end'] = datetime_to_timestamp(parse_date(capture_date['end'])).encode()
+                self.capture_date['end'] = parse_date(capture_date['end'])
+                if not self.policy.startswith('rewrite'):
+                    self.capture_date['end'] = datetime_to_timestamp(self.capture_date['end']).encode()
         else:
             self.capture_date = None
 
