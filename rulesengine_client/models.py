@@ -6,7 +6,7 @@ from dateutil.parser import parse as parse_date
 import ipaddr
 from pytz import utc
 import re
-from warcio.timeutils import datetime_to_timestamp
+from warcio.timeutils import datetime_to_timestamp, timestamp_to_datetime
 import ipdb
 
 from .exceptions import MalformedResponseException
@@ -195,7 +195,7 @@ class Rule(object):
         if self.seconds_since_capture is None:
             return True
         return (timedelta(seconds=int(self.seconds_since_capture)) >=
-                (datetime.now(tz=utc) - capture_date))
+                (datetime.now(tz=utc) - timestamp_to_datetime(capture_date)))
 
     def capture_date_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
