@@ -28,8 +28,8 @@ class Rule(object):
         self.partner = partner
         self.protocol = protocol
         self.warc_match = warc_match
-        self.rewrite_from = rewrite_from
-        self.rewrite_to = rewrite_to
+        self.rewrite_from = rewrite_from.encode() if rewrite_from else None
+        self.rewrite_to = rewrite_to.encode() if rewrite_from else None
         self.private_comment = private_comment
         self.public_comment = public_comment
         self.enabled = enabled
@@ -39,28 +39,16 @@ class Rule(object):
         #
         # Note: we compare capture date here mostly when checking blocks,
         # to a bytes timestamp from a cdx record, server_side_filters=False
-        if capture_date:
-            self.capture_date = {'start': None, 'end': None}
-            if capture_date['start']:
-                self.capture_date['start'] = parse_date(capture_date['start'])
-                if not self.policy.startswith('rewrite'):
-                    self.capture_date['start'] = datetime_to_timestamp(self.capture_date['start']).encode()
-            if capture_date['end']:
-                self.capture_date['end'] = parse_date(capture_date['end'])
-                if not self.policy.startswith('rewrite'):
-                    self.capture_date['end'] = datetime_to_timestamp(self.capture_date['end']).encode()
-        else:
-            self.capture_date = None
+        self.capture_date = {
+            'start': datetime_to_timestamp(parse_date(capture_date['start'])).encode() if capture_date['start'] else None,
+            'end': datetime_to_timestamp(parse_date(capture_date['end'])).encode() if capture_date['end'] else None
+        } if capture_date else None
 
         # we compare retrieve_date only to datetime
-        if retrieve_date:
-            self.retrieve_date = {'start': None, 'end': None}
-            if retrieve_date['start']:
-                self.retrieve_date['start'] =  parse_date(retrieve_date['start'])
-            if retrieve_date['end']:
-                self.retrieve_date['end'] = parse_date(retrieve_date['end'])
-        else:
-            self.retrieve_date = None
+        self.retrieve_date = {
+            'start': parse_date(retrieve_date['start']) if retrieve_date['start'] else None,
+            'end': parse_date(retrieve_date['end']) if retrieve_date['end'] else None
+        } if retrieve_date else None
 
         # Parse IP addresses if necessary.
         if (ip_range and ip_range['start'] and ip_range['end']):
@@ -356,7 +344,10 @@ class RuleCollection(object):
             [rule for rule in self.rules if rule.policy.startswith('rewrite')])
 
     def rewrite(self, content):
-        rewritten_content = content.decode()
         for r in self.rules:
-            rewritten_content = re.sub(r.rewrite_from, r.rewrite_to, rewritten_content)
-        return rewritten_content.encode()
+            try:
+                content_rewritten = re.sub(r.rewrite_from, r.rewrite_to, content)
+            except Exception as e:
+                print(f'exception rewriting content: {e}') #  todo: import logging !!!
+                content_rewritten = content
+        return content_rewritten
