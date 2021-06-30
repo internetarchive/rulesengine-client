@@ -343,11 +343,41 @@ class RuleCollection(object):
         return RuleCollection(
             [rule for rule in self.rules if rule.policy.startswith('rewrite')])
 
-    def rewrite(self, content):
+    def rewrite(self, response):
+        """ Rewrites response according to matching rewrite rules.
+
+        todo: logging!!!
+
+        :return: rewritten response
+        """
+        headers_r = response.headers
+        content_r = response.data
         for r in self.rules:
-            try:
-                content_rewritten = re.sub(r.rewrite_from, r.rewrite_to, content)
-            except Exception as e:
-                print(f'exception rewriting content: {e}') #  todo: import logging !!!
-                content_rewritten = content
-        return content_rewritten
+            if r.policy == 'rewrite-headers':
+                #  todo: support rewrite-headers, use, e.g.,
+                #   response.headers['X-Archive-Guessed-Content-Type']
+                #  is this bytes or string?
+                continue
+            if not (response.content_type.startswith('text') or
+                    response.content_type.startswith('application')):
+                # todo: make more efficent? anything else?
+                continue
+            if r.policy == 'rewrite-all':
+                if not (r.rewrite_from[:2] == b'QE'):
+                    try:
+                        #ipdb.set_trace()
+                        content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r)
+                        print(f'rewriting response.data: {content_r[:80]}...')
+                    except Exception as e:
+                        print(f'exception rewriting response.data with rule {r.rewrite_from[:80]}: {e}')
+                        content_r = response.data
+                else:
+                    content_r = content_r.replace(r.rewrite_from[2:], r.rewrite_to)
+                    print(f'replacing response.data: {content_r[:80]}...')
+            elif r.policy == 'rewrite-js':
+                # do we need to support this?  here?
+                    continue
+            else:
+                print('help? what to do?')
+        return headers_r, content_r
+
