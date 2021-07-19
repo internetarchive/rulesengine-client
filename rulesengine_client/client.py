@@ -1,3 +1,4 @@
+import logging
 import requests
 
 from .response import Response
@@ -7,6 +8,8 @@ class Client(object):
 
     def __init__(self, host):
         self.host = host
+        self._log = logging.getLogger(
+            '{0.__module__}'.format(Client))
 
     def get_rules(self):
         response = requests.get('{}/rules'.format(self.host))
