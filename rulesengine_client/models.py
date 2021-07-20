@@ -4,6 +4,7 @@ from datetime import (
 )
 from dateutil.parser import parse as parse_date
 import ipaddr
+import logging
 from pytz import utc
 import re
 from warcio.timeutils import datetime_to_timestamp, timestamp_to_datetime
@@ -22,26 +23,28 @@ class Rule(object):
                  public_comment=None, enabled=True, environment='prod'):
         self.surt = surt
         self.policy = policy
-        self.neg_surt = neg_surt
+        self.neg_surt = neg_surt if neg_surt else None
         self.seconds_since_capture = seconds_since_capture
-        self.collection = collection
-        self.partner = partner
-        self.protocol = protocol
-        self.warc_match = warc_match
+        self.collection = collection if collection else None
+        self.partner = partner if partner else None
+        self.protocol = protocol if protocol else None
+        self.warc_match = warc_match.encode() if warc_match else None
         self.rewrite_from = rewrite_from.encode() if rewrite_from else None
         self.rewrite_to = rewrite_to.encode() if rewrite_from else None
         self.private_comment = private_comment
         self.public_comment = public_comment
         self.enabled = enabled
-        self.environment = environment
+        self.environment = environment if environment else 'prod'
+        self._log = logging.getLogger(
+            '{0.__module__}'.format(Rule))
 
         # Parse dates out of capture and retrieval date fields if necessary.
         #
         # Note: we compare capture date here mostly when checking blocks,
         # to a bytes timestamp from a cdx record, server_side_filters=False
         self.capture_date = {
-            'start': datetime_to_timestamp(parse_date(capture_date['start'])).encode() if capture_date['start'] else None,
-            'end': datetime_to_timestamp(parse_date(capture_date['end'])).encode() if capture_date['end'] else None
+            'start': datetime_to_timestamp(capture_date['start']).encode() if capture_date['start'] else None,
+            'end': datetime_to_timestamp(capture_date['end']).encode() if capture_date['end'] else None
         } if capture_date else None
 
         # we compare retrieve_date only to datetime
@@ -50,7 +53,7 @@ class Rule(object):
             'end': parse_date(retrieve_date['end']) if retrieve_date['end'] else None
         } if retrieve_date else None
 
-        # Parse IP addresses if necessary.
+        # Parse IP addresses if necessary. note: ip checks disabled for now
         if (ip_range and ip_range['start'] and ip_range['end']):
             self.ip_range = {
                 'start': ipaddr.IPAddress(ip_range['start']),
@@ -98,7 +101,43 @@ class Rule(object):
             enabled=response.get('enabled'),
             environment=response.get('environment'))
 
-    def applies(self, warc_name, client_ip, capture_date,
+    @classmethod
+    def from_pg_response(cls, response):
+        """Build a Rule from the results of a query to postgres."""
+        if 'surt' not in response or 'policy' not in response:
+            raise MalformedResponseException(
+                'rules must contain at least a surt and a policy')
+        capture_date = {'start': None, 'end': None}
+        if 'capture_date_start' in response and response['capture_date_start']:
+            capture_date['start'] = response['capture_date_start']
+        if 'capture_date_end' in response and response['capture_date_end']:
+            capture_date['end'] = response['capture_date_end']
+        if not capture_date['start'] and not capture_date['end']:
+            capture_date = None
+        retrieve_date = {'start': None, 'end': None}
+        if 'retrieve_date_start' in response and response['retrieve_date_start']:
+            retrieve_date['start'] = response['retrieve_date_start']
+        if 'retrieve_date_end' in response and response['retrieve_date_end']:
+            retrieve_date['end'] = response['retrieve_date_end']
+        if not retrieve_date['start'] and not retrieve_date['end']:
+            retrieve_date = None
+        return cls(
+            response['surt'],
+            response['policy'],
+            capture_date = capture_date,
+            retrieve_date = retrieve_date,
+            neg_surt=response.get('neg_surt'),
+            seconds_since_capture=response.get('seconds_since_capture'),
+            collection=response.get('collection'),
+            partner=response.get('partner'),
+            warc_match=response.get('warc_match'),
+            rewrite_from=response.get('rewrite_from'),
+            rewrite_to=response.get('rewrite_to'),
+            private_comment=response.get('private_comment'),
+            public_comment=response.get('public_comment'),
+            environment=response.get('environment'))
+
+    def applies(self, warc_name, capture_date, client_ip=None,
                 retrieve_date=datetime.now(tz=utc), collection=None,
                 partner=None, protocol=None, server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
@@ -118,12 +157,10 @@ class Rule(object):
         """
         if server_side_filters:
             return (self.warc_match_applies(warc_name) and
-                    self.ip_range_applies(client_ip) and
                     self.protocol_applies(protocol) and
                     self.seconds_since_capture_applies(capture_date))
+
         return (
-            self.enabled and
-            self.ip_range_applies(client_ip) and
             self.seconds_since_capture_applies(capture_date) and
             self.capture_date_applies(capture_date) and
             self.retrieve_date_applies(retrieve_date) and
@@ -273,6 +310,8 @@ class RuleCollection(object):
     def __init__(self, rules):
         self.rules = rules
         self.sort_rules()
+        self._log = logging.getLogger(
+            '{0.__module__}'.format(RuleCollection))
 
     @classmethod
     def from_response(cls, response):
@@ -282,11 +321,19 @@ class RuleCollection(object):
             rules.append(Rule.from_response(rule))
         return cls(rules)
 
+    @classmethod
+    def from_pg_response(cls, response):
+        """Build a RuleCollection from the results of a query to the server."""
+        rules = []
+        for rule in response:
+            rules.append(Rule.from_pg_response(rule))
+        return cls(rules)
+
     def sort_rules(self):
         """Sorts the rules on the surts."""
         self.rules.sort(key=lambda x: x.surt)
 
-    def filter_applicable_rules(self, warc_name, client_ip, capture_date=None,
+    def filter_applicable_rules(self, warc_name, client_ip=None, capture_date=None,
                                 retrieve_date=datetime.now(tz=utc),
                                 collection=None, partner=None, protocol=None,
                                 server_side_filters=True):
@@ -308,7 +355,6 @@ class RuleCollection(object):
         """
         self.rules = [rule for rule in self.rules if rule.applies(
             warc_name,
-            client_ip,
             capture_date=capture_date,
             collection=collection,
             partner=partner,
@@ -365,19 +411,18 @@ class RuleCollection(object):
             if r.policy == 'rewrite-all':
                 if not (r.rewrite_from[:2] == b'QE'):
                     try:
-                        #ipdb.set_trace()
                         content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r)
-                        print(f'rewriting response.data: {content_r[:80]}...')
+                        self._log.info(f'rewriting response.data: {content_r[:80]}...')
                     except Exception as e:
-                        print(f'exception rewriting response.data with rule {r.rewrite_from[:80]}: {e}')
+                        self._log.warn(f'exception rewriting response.data with rule {r.rewrite_from[:80]}: {e}')
                         content_r = response.data
                 else:
                     content_r = content_r.replace(r.rewrite_from[2:], r.rewrite_to)
-                    print(f'replacing response.data: {content_r[:80]}...')
+                    self._log.info(f'replacing response.data: {content_r[:80]}...')
             elif r.policy == 'rewrite-js':
                 # do we need to support this?  here?
                     continue
             else:
-                print('help? what to do?')
+                self._log.warn('unexpected policy; nothing rewritten!')
         return headers_r, content_r
 
