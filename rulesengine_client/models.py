@@ -49,8 +49,8 @@ class Rule(object):
 
         # we compare retrieve_date only to datetime
         self.retrieve_date = {
-            'start': parse_date(retrieve_date['start']) if retrieve_date['start'] else None,
-            'end': parse_date(retrieve_date['end']) if retrieve_date['end'] else None
+            'start': retrieve_date['start'] if retrieve_date['start'] else None,
+            'end': retrieve_date['end'] if retrieve_date['end'] else None
         } if retrieve_date else None
 
         # Parse IP addresses if necessary. note: ip checks disabled for now
