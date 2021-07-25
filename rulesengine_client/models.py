@@ -23,37 +23,35 @@ class Rule(object):
                  public_comment=None, enabled=True, environment='prod'):
         self.surt = surt
         self.policy = policy
-        self.neg_surt = neg_surt if neg_surt else None
+        self.neg_surt = neg_surt
         self.seconds_since_capture = seconds_since_capture
-        self.collection = collection if collection else None
-        self.partner = partner if partner else None
-        self.protocol = protocol if protocol else None
-        self.warc_match = warc_match.encode() if warc_match else None
-        self.rewrite_from = rewrite_from.encode() if rewrite_from else None
-        self.rewrite_to = rewrite_to.encode() if rewrite_from else None
+        self.collection = collection
+        self.partner = partner
+        self.protocol = protocol
+        self.warc_match = warc_match
+        self.rewrite_from = rewrite_from
+        self.rewrite_to = rewrite_to
         self.private_comment = private_comment
         self.public_comment = public_comment
         self.enabled = enabled
-        self.environment = environment if environment else 'prod'
+        self.environment = environment
         self._log = logging.getLogger(
             '{0.__module__}'.format(Rule))
 
         # Parse dates out of capture and retrieval date fields if necessary.
-        #
-        # Note: we compare capture date here mostly when checking blocks,
-        # to a bytes timestamp from a cdx record, server_side_filters=False
+        # We compare capture date to a bytes timestamp from a cdx record.
         self.capture_date = {
-            'start': datetime_to_timestamp(capture_date['start']).encode() if capture_date['start'] else None,
-            'end': datetime_to_timestamp(capture_date['end']).encode() if capture_date['end'] else None
+            'start': capture_date['start'] if capture_date['start'] else None,
+            'end':   capture_date['end']   if capture_date['end']   else None
         } if capture_date else None
 
-        # we compare retrieve_date only to datetime
+        # We compare retrieve_date only to datetime.
         self.retrieve_date = {
             'start': retrieve_date['start'] if retrieve_date['start'] else None,
-            'end': retrieve_date['end'] if retrieve_date['end'] else None
+            'end':   retrieve_date['end']   if retrieve_date['end']   else None
         } if retrieve_date else None
 
-        # Parse IP addresses if necessary. note: ip checks disabled for now
+        # Parse IP addresses if necessary. note: ip checks disabled 202107
         if (ip_range and ip_range['start'] and ip_range['end']):
             self.ip_range = {
                 'start': ipaddr.IPAddress(ip_range['start']),
@@ -109,9 +107,9 @@ class Rule(object):
                 'rules must contain at least a surt and a policy')
         capture_date = {'start': None, 'end': None}
         if 'capture_date_start' in response and response['capture_date_start']:
-            capture_date['start'] = response['capture_date_start']
+            capture_date['start'] = datetime_to_timestamp(response['capture_date_start']).encode()
         if 'capture_date_end' in response and response['capture_date_end']:
-            capture_date['end'] = response['capture_date_end']
+            capture_date['end'] = datetime_to_timestamp(response['capture_date_end']).encode()
         if not capture_date['start'] and not capture_date['end']:
             capture_date = None
         retrieve_date = {'start': None, 'end': None}
@@ -121,21 +119,33 @@ class Rule(object):
             retrieve_date['end'] = response['retrieve_date_end']
         if not retrieve_date['start'] and not retrieve_date['end']:
             retrieve_date = None
+        neg_surt=response.get('neg_surt')
+        seconds_since_capture=response.get('seconds_since_capture')
+        collection=response.get('collection')
+        partner=response.get('partner')
+        protocol=response.get('protocol')
+        warc_match=response.get('warc_match')
+        rewrite_from=response.get('rewrite_from')
+        rewrite_to=response.get('rewrite_to')
+        private_comment=response.get('private_comment')
+        public_comment=response.get('public_comment')
+        environment=response.get('environment')
         return cls(
             response['surt'],
             response['policy'],
             capture_date = capture_date,
             retrieve_date = retrieve_date,
-            neg_surt=response.get('neg_surt'),
-            seconds_since_capture=response.get('seconds_since_capture'),
-            collection=response.get('collection'),
-            partner=response.get('partner'),
-            warc_match=response.get('warc_match'),
-            rewrite_from=response.get('rewrite_from'),
-            rewrite_to=response.get('rewrite_to'),
-            private_comment=response.get('private_comment'),
-            public_comment=response.get('public_comment'),
-            environment=response.get('environment'))
+            neg_surt = neg_surt if neg_surt else None,
+            seconds_since_capture = seconds_since_capture,
+            collection = collection if collection else None,
+            partner = partner if partner else None,
+            protocol = protocol if protocol else None,
+            warc_match = warc_match.encode() if warc_match else None,
+            rewrite_from = rewrite_from.encode() if rewrite_from else None,
+            rewrite_to = rewrite_to.encode() if rewrite_to else None,
+            private_comment = private_comment,
+            public_comment = public_comment,
+            environment = environment)
 
     def applies(self, warc_name, capture_date, client_ip=None,
                 retrieve_date=datetime.now(tz=utc), collection=None,
@@ -143,12 +153,13 @@ class Rule(object):
         """Checks to see whether a rule applies given request and playback
         information.
 
-        :param str warc_name: the name of the WARC file containing the capture.
+        :param bytes warc_name: the name of the WARC file containing the capture.
         :param client_ip: the client's IP address
         :type client_ip: str or ipaddr.IPv[46]Address
-        :param datetime capture_date: the date of the requested capture.
+        :param bytes timestamp capture_date: the date of the requested capture.
         :param str collection: the collection to which the capture belongs.
         :param str partner: the partner to which the capture belongs.
+        :param str protocol: the protocol of the capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -213,7 +224,7 @@ class Rule(object):
         whether it has been less than that number of seconds since capture.
         If not, it's assumed that the rule applies.
 
-        :param int capture_date: the date of the capture.
+        :param bytes timestamp capture_date: the date of the capture.
 
         :return: True if the rule applies for this check, otherwise False.
         """
@@ -230,7 +241,7 @@ class Rule(object):
         capture date falls within that range. If not, it's assumed that the
         rule applies.
 
-        :param datetime capture_date: the date of the capture.
+        :param bytes timestamp capture_date: the date of the capture.
 
         :return: True if the rule applies for this check, otherwise False.
         """
@@ -263,7 +274,7 @@ class Rule(object):
         If the rule has a warc_match regex, it will check to see if it matches.
         If not, it's assumed the rule applies.
 
-        :param str warc_name: the name of the WARC file to check.
+        :param bytes warc_name: the name of the WARC file to check.
 
         :return: True if the rule applies for this check, otherwise False.
         """
@@ -343,12 +354,13 @@ class RuleCollection(object):
         this method should be run on the rule collection to ensure that only
         the appropriate rules are included.
 
-        :param str warc_name: the name of the WARC file containing the capture.
+        :param bytes warc_name: the name of the WARC file containing the capture.
         :param client_ip: the client's IP address
         :type client_ip: str or ipaddr.IPv[46]Address
-        :param datetime capture_date: the date of the requested capture.
+        :param bytes timestamp capture_date: the date of the requested capture.
         :param str collection: the collection to which the capture belongs.
         :param str partner: the partner to which the capture belongs.
+        :param str protocol: the protocol of the capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -391,8 +403,6 @@ class RuleCollection(object):
 
     def rewrite(self, response):
         """ Rewrites response according to matching rewrite rules.
-
-        todo: logging!!!
 
         :return: rewritten response
         """
