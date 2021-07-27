@@ -70,10 +70,10 @@ class Client(object):
                        'from rules_rule where %s like surt and enabled = true'
                        )
         if collection:
-            query_end = ' and collection = %s;'
+            query_end = " and (collection = %s or collection = '');"
             who = collection
         elif partner:
-            query_end = ' and partner = %s;'
+            query_end = " and (partner = %s or partner = '');"
             who = partner
         else:
             query_end = ';'
