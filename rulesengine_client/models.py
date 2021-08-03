@@ -422,9 +422,9 @@ class RuleCollection(object):
                 if not (r.rewrite_from[:2] == b'QE'):
                     try:
                         content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r)
-                        self._log.info(f'rewriting response.data: {content_r[:80]}...')
+                        self._log.info(f'rewriting response.data: {content_r[:80]}... with rewrite to {r.rewrite_to[:80]}')
                     except Exception as e:
-                        self._log.warn(f'exception rewriting response.data with rule {r.rewrite_from[:80]}: {e}')
+                        self._log.warn(f'exception rewriting response.data with rewrite from {r.rewrite_from[:80]}: {e}')
                         content_r = response.data
                 else:
                     content_r = content_r.replace(r.rewrite_from[2:], r.rewrite_to)
