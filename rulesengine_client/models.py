@@ -7,8 +7,7 @@ import ipaddr
 import logging
 from pytz import utc
 import re
-from warcio.timeutils import datetime_to_timestamp, timestamp_to_datetime
-import ipdb
+from wayback.timestamp import datetime2timestamp, timestamp2datetime
 
 from .exceptions import MalformedResponseException
 
@@ -107,9 +106,9 @@ class Rule(object):
                 'rules must contain at least a surt and a policy')
         capture_date = {'start': None, 'end': None}
         if 'capture_date_start' in response and response['capture_date_start']:
-            capture_date['start'] = datetime_to_timestamp(response['capture_date_start']).encode()
+            capture_date['start'] = datetime2timestamp(response['capture_date_start'])
         if 'capture_date_end' in response and response['capture_date_end']:
-            capture_date['end'] = datetime_to_timestamp(response['capture_date_end']).encode()
+            capture_date['end'] = datetime2timestamp(response['capture_date_end'])
         if not capture_date['start'] and not capture_date['end']:
             capture_date = None
         retrieve_date = {'start': None, 'end': None}
@@ -231,7 +230,7 @@ class Rule(object):
         if self.seconds_since_capture is None:
             return True
         return (timedelta(seconds=int(self.seconds_since_capture)) >=
-                (datetime.now(tz=utc) - timestamp_to_datetime(capture_date)))
+                (datetime.now(tz=utc) - timestamp2datetime(capture_date)))
 
     def capture_date_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
