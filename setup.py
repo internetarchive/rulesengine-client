@@ -3,9 +3,10 @@ from setuptools import setup
 
 setup(
     name='rulesengine_client',
-    description='Client for interacting with the Playback Rules Engine',
-    version='0.2.1',
+    description='Client for interacting with the playback Rules Engine',
+    version='0.5',
     install_requires=[
+        'psycopg2',
         'python-dateutil',
         'ipaddr',
         'pytz',
@@ -18,6 +19,6 @@ setup(
         'rulesengine_client',
     ],
     test_suite='rulesengine_client.tests',
-    author='Madison Scott-Clary',
-    author_email='madison@archive.org',
+    author='Barbara Miller <barbara@archive.org>, Madison Scott-Clary',
+    author_email='barbara@archive.org',
     license='GPLv3')
