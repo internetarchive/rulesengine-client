@@ -1,12 +1,19 @@
+import logging
+import psycopg2
+from psycopg2 import extras
 import requests
 
 from .response import Response
+from .models import RuleCollection
 
 
 class Client(object):
 
-    def __init__(self, host):
+    def __init__(self, host, datasource):
         self.host = host
+        self.datasource = datasource
+        self._log = logging.getLogger(
+            '{0.__module__}'.format(Client))
 
     def get_rules(self):
         response = requests.get('{}/rules'.format(self.host))
@@ -49,3 +56,48 @@ class Client(object):
         response = requests.get(
             '{}/rules/for-request'.format(self.host), params=p)
         return Response(response)
+
+    def rules_from_postgres(self, surt, capture_date, neg_surt=None,
+                            collection=None, partner=None):
+        query_start = ('SELECT policy, surt, '
+                       'capture_date_start, capture_date_end, '
+                       'collection, partner, '
+                       'rewrite_from, rewrite_to, '
+                       'warc_match, neg_surt, '
+                       'retrieve_date_start, retrieve_date_end, '
+                       'seconds_since_capture, '
+                       'ip_range_start, ip_range_end, '
+                       'environment, protocol '
+                       'from rules_rule where %s like surt and enabled = true'
+                       )
+        if collection:
+            query_end = " and (collection = %s or collection = '');"
+            who = collection
+        elif partner:
+            query_end = " and (partner = %s or partner = '');"
+            who = partner
+        else:
+            query_end = ';'
+            who = None
+        rules_query = ''.join([query_start, query_end])
+        try:
+            conn = psycopg2.connect(self.datasource,
+                    cursor_factory=extras.DictCursor)
+        except Exception as e:
+            self._log.warning(f'db connection failure: {e}')
+            return None
+        cur = conn.cursor()
+        try:
+            if collection or partner:
+                cur.execute(rules_query, (surt, who, ))
+            else:
+                cur.execute(rules_query, (surt, ))
+        except Exception as e:
+            self._log.warning(f'exception querying for {surt} and {who}: {e}')
+            return None
+        rules = cur.fetchall()
+        if rules:
+            self._log.debug('returning {}...'.format(rules[0]))
+        else:
+            self._log.debug('no rules returned')
+        return RuleCollection.from_pg_response(rules)
