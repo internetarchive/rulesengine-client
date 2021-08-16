@@ -9,8 +9,9 @@ from .models import RuleCollection
 
 class Client(object):
 
-    def __init__(self, host):
+    def __init__(self, host, datasource):
         self.host = host
+        self.datasource = datasource
         self._log = logging.getLogger(
             '{0.__module__}'.format(Client))
 
@@ -80,10 +81,8 @@ class Client(object):
             who = None
         rules_query = ''.join([query_start, query_end])
         try:
-            conn = psycopg2.connect(
-                    'host=db.qa-archive-it.org dbname=rulesengine user=archiveit',
-                    cursor_factory=extras.DictCursor
-                    )
+            conn = psycopg2.connect(self.datasource,
+                    cursor_factory=extras.DictCursor)
         except Exception as e:
             self._log.warning(f'db connection failure: {e}')
             return None
