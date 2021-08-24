@@ -383,6 +383,7 @@ class RuleCollection(object):
         """
         policies = [rule.policy for rule in self.rules]
         allow = True
+        message = False
         for policy in policies:
             # Allow decisions only rely on 'allow' and 'block' policies. No
             # decision is made for rewrite policies.
@@ -390,6 +391,11 @@ class RuleCollection(object):
                 allow = True
             elif policy == 'block':
                 allow = False
+            elif policy == 'message':
+                allow = False
+                message = True
+        if message and not allow:
+            pass # raise BlockedException here?
         return allow
 
     def rewrites_only(self):
