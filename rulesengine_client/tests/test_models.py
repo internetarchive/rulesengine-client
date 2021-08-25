@@ -1,3 +1,5 @@
+from wayback.timestamp import datetime2timestamp
+
 from datetime import (
     datetime,
     timedelta,
@@ -42,27 +44,28 @@ class RuleModelTestCase(unittest.TestCase):
             warc_match='.*jupiter.*')
         self.assertEqual(
             rule.capture_date['start'],
-            '20000101120000'.encode())
+            '2000-01-01T12:00:00.000Z')
         self.assertEqual(
             rule.capture_date['end'],
-            '20010101120000'.encode())
+            '2001-01-01T12:00:00.000Z')
         self.assertEqual(
             rule.retrieve_date['start'],
-            datetime(year=2000, month=1, day=1, hour=12, minute=0, second=0,
-                     tzinfo=utc))
+            '2000-01-01T12:00:00.000Z')
         self.assertEqual(
             rule.retrieve_date['end'],
-            datetime(year=2001, month=1, day=1, hour=12, minute=0, second=0,
-                     tzinfo=utc))
+            '2001-01-01T12:00:00.000Z')
         self.assertEqual(
             rule.ip_range['start'],
             ipaddr.IPAddress('4.4.4.4'))
         self.assertEqual(
             rule.ip_range['end'],
             ipaddr.IPAddress('8.8.8.8'))
+        self.assertEqual(
+            rule.protocol,
+            'http')
 
-    @patch('rulesengine_client.models.Rule.ip_range_applies')
     @patch('rulesengine_client.models.Rule.protocol_applies')
+    @patch('rulesengine_client.models.Rule.ip_range_applies')
     @patch('rulesengine_client.models.Rule.seconds_since_capture_applies')
     @patch('rulesengine_client.models.Rule.capture_date_applies')
     @patch('rulesengine_client.models.Rule.retrieve_date_applies')
@@ -75,24 +78,24 @@ class RuleModelTestCase(unittest.TestCase):
                      ip_range_applies, protocol_applies):
         rule = Rule('http://(com,example,)', 'block')
         rule.applies('warc', '0.0.0.0', datetime.now(tz=utc))
-        self.assertEqual(ip_range_applies.call_count, 1)
-        self.assertEqual(protocol_applies.call_count, 1)
+        self.assertEqual(warc_match_applies.call_count, 1)
         self.assertEqual(seconds_since_capture_applies.call_count, 1)
+        self.assertEqual(protocol_applies.call_count, 1)
         self.assertEqual(capture_date_applies.call_count, 0)
         self.assertEqual(retrieve_date_applies.call_count, 0)
-        self.assertEqual(warc_match_applies.call_count, 1)
         self.assertEqual(collection_applies.call_count, 0)
         self.assertEqual(partner_applies.call_count, 0)
+        self.assertEqual(ip_range_applies.call_count, 0)
         rule.applies('warc', '0.0.0.0', datetime.now(tz=utc),
                      server_side_filters=False)
-        self.assertEqual(ip_range_applies.call_count, 2)
-        self.assertEqual(protocol_applies.call_count, 2)
         self.assertEqual(seconds_since_capture_applies.call_count, 2)
+        self.assertEqual(protocol_applies.call_count, 2)
+        self.assertEqual(warc_match_applies.call_count, 2)
         self.assertEqual(capture_date_applies.call_count, 1)
         self.assertEqual(retrieve_date_applies.call_count, 1)
-        self.assertEqual(warc_match_applies.call_count, 2)
         self.assertEqual(collection_applies.call_count, 1)
         self.assertEqual(partner_applies.call_count, 1)
+        self.assertEqual(ip_range_applies.call_count, 0)
 
     def test_ip_range_applies(self):
         rule = Rule(
@@ -114,9 +117,9 @@ class RuleModelTestCase(unittest.TestCase):
             seconds_since_capture=500)
         now = datetime.now(tz=utc)
         self.assertEqual(
-            rule.seconds_since_capture_applies(now), True)
+            rule.seconds_since_capture_applies(datetime2timestamp(now)), True)
         self.assertEqual(
-            rule.seconds_since_capture_applies(now - timedelta(days=1)),
+            rule.seconds_since_capture_applies(datetime2timestamp(now - timedelta(days=1))),
             False)
         rule = Rule('http://(com,example,)', 'block')
         self.assertEqual(rule.seconds_since_capture_applies('5.5.5.5'), True)
@@ -127,8 +130,6 @@ class RuleModelTestCase(unittest.TestCase):
             'block',
             # compare block rule capture dates to timestamps as bytes
             capture_date={
-                # 'start': '2000-01-01T12:00:00.000Z',
-                # 'end': '2001-01-01T12:00:00.000Z',
                 'start': '20000101120000'.encode(),
                 'end': '20010101120000'.encode(),
             })
@@ -143,14 +144,14 @@ class RuleModelTestCase(unittest.TestCase):
             rule.capture_date_applies('20000102000000'.encode()),
             True)
 
-    def test_retieve_date_applies(self):
+    def test_retrieve_date_applies(self):
         rule = Rule(
             'http://(com,example,)',
             'block',
             retrieve_date={
                 'start': (datetime.now(tz=utc) -
-                          timedelta(days=1)).isoformat(),
-                'end': (datetime.now(tz=utc) + timedelta(days=1)).isoformat(),
+                          timedelta(days=1)),
+                'end': (datetime.now(tz=utc) + timedelta(days=1)),
             })
         self.assertEqual(rule.retrieve_date_applies(), True)
         self.assertEqual(
