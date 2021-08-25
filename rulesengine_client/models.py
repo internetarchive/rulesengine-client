@@ -8,7 +8,7 @@ from datetime import (
 import ipaddr
 import logging
 from pytz import utc
-import re
+import re2 as re
 
 from .exceptions import MalformedResponseException
 
@@ -418,22 +418,15 @@ class RuleCollection(object):
                 #  todo: support rewrite-headers, use, e.g.,
                 #   response.headers['X-Archive-Guessed-Content-Type']
                 #  is this bytes or string?
-                continue
-            if not (response.content_type.startswith('text') or
-                    response.content_type.startswith('application')):
-                # todo: make more efficent? anything else?
+                #  also, we're rewriting only "rewritable" mimetypes in wsgiapp.py
                 continue
             if r.policy == 'rewrite-all':
-                if not (r.rewrite_from[:2] == b'QE'):
-                    try:
-                        content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r)
-                        self._log.info(f'rewriting response.data: {content_r[:80]}... with rewrite to {r.rewrite_to[:80]}')
-                    except Exception as e:
-                        self._log.warn(f'exception rewriting response.data with rewrite from {r.rewrite_from[:80]}: {e}')
-                        content_r = response.data
-                else:
-                    content_r = content_r.replace(r.rewrite_from[2:], r.rewrite_to)
-                    self._log.info(f'replacing response.data: {content_r[:80]}...')
+                try:
+                    content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r)
+                    self._log.info(f'rewriting response.data with {r.rewrite_from[:80]}... with rewrite to {r.rewrite_to[:80]}')
+                except Exception as e:
+                    self._log.warn(f'exception rewriting response.data with rewrite from {r.rewrite_from[:80]}: {e}')
+                    content_r = response.data
             elif r.policy == 'rewrite-js':
                 # do we need to support this?  here?
                     continue
