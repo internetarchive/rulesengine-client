@@ -21,7 +21,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.get_rules()
         self.assertEqual(result.status_code, 200)
         mock_request.assert_called_once_with('http://localhost/rules')
@@ -31,7 +31,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.create_rule({})
         self.assertEqual(result.status_code, 200)
         mock_request.assert_called_once_with('http://localhost/rules', data={})
@@ -41,7 +41,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.get_rule(1)
         self.assertEqual(result.status_code, 200)
         mock_request.assert_called_once_with('http://localhost/rule/1')
@@ -51,7 +51,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.update_rule(1, {})
         self.assertEqual(result.status_code, 200)
         mock_request.assert_called_once_with(
@@ -62,7 +62,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.delete_rule(1)
         self.assertEqual(result.status_code, 200)
         mock_request.assert_called_once_with('http://localhost/rule/1')
@@ -72,7 +72,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.tree_for_surt('http://(org,archive,)')
         self.assertEqual(result.status_code, 200)
         mock_request.assert_called_once_with(
@@ -83,7 +83,7 @@ class ClientTestCase(unittest.TestCase):
         mock_request.return_value = StubResponse(
             200,
             '{"status": "success", "message": "ok", "result": []}')
-        c = Client('http://localhost')
+        c = Client('http://localhost', 'datasource')
         result = c.rules_for_request('http://(org,archive,)', 'today')
         self.assertEqual(result.status_code, 200)
         result = c.rules_for_request(
