@@ -1,13 +1,14 @@
+from wayback.cdxserver import BlockedException
+from wayback.timestamp import datetime2timestamp, timestamp2datetime
+
 from datetime import (
     datetime,
     timedelta,
 )
-from dateutil.parser import parse as parse_date
 import ipaddr
 import logging
 from pytz import utc
 import re
-from wayback.timestamp import datetime2timestamp, timestamp2datetime
 
 from .exceptions import MalformedResponseException
 
@@ -377,12 +378,11 @@ class RuleCollection(object):
         """Decides whether to allow a playback based on the collection of
         rules.
 
-        todo: handle message (old block-message) rules
-
         :return: True if the playback is allowed.
         """
         policies = [rule.policy for rule in self.rules]
         allow = True
+        message = False
         for policy in policies:
             # Allow decisions only rely on 'allow' and 'block' policies. No
             # decision is made for rewrite policies.
@@ -390,6 +390,12 @@ class RuleCollection(object):
                 allow = True
             elif policy == 'block':
                 allow = False
+            elif policy == 'message':
+                allow = False
+                message = True
+        if message and not allow:
+            self._log.warning('blocking url')
+            raise BlockedException
         return allow
 
     def rewrites_only(self):
