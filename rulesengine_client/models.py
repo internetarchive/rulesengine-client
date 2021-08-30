@@ -12,6 +12,9 @@ import re2 as re
 
 from .exceptions import MalformedResponseException
 
+# more python re2 code examples: https://github.com/google/re2/blob/abseil/python/re2_test.py
+re2_options = re.Options()
+re2_options.encoding = re.Options.Encoding.LATIN1
 
 class Rule(object):
     """Rule represents a rule received from the rulesengine server."""
@@ -419,17 +422,19 @@ class RuleCollection(object):
                 #   response.headers['X-Archive-Guessed-Content-Type']
                 #  is this bytes or string?
                 #  also, we're rewriting only "rewritable" mimetypes in wsgiapp.py
+                self._log.warn(f'rulesengine policy rewrite-headers to be implemented')
                 continue
             if r.policy == 'rewrite-all':
                 try:
-                    content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r)
-                    self._log.info(f'rewriting response.data with {r.rewrite_from[:80]}... with rewrite to {r.rewrite_to[:80]}')
+                    content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r, options=re2_options)
+                    self._log.info(f'rewriting response.data from... {r.rewrite_from[:80]}... to ...{r.rewrite_to[:80]}')
                 except Exception as e:
-                    self._log.warn(f'exception rewriting response.data with rewrite from {r.rewrite_from[:80]}: {e}')
+                    self._log.warn(f'exception rewriting response.data from {r.rewrite_from[:80]}: {e}')
                     content_r = response.data
             elif r.policy == 'rewrite-js':
-                # do we need to support this?  here?
-                    continue
+                self._log.warn(f'rulesengine policy rewrite-js to be implemented')
+                # support this here?
+                continue
             else:
                 self._log.warn('unexpected policy; nothing rewritten!')
         return headers_r, content_r
