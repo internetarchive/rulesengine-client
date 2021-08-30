@@ -230,7 +230,7 @@ class Rule(object):
         if self.seconds_since_capture is None:
             return True
         return (timedelta(seconds=int(self.seconds_since_capture)) >=
-                (datetime.now(tz=utc) - timestamp2datetime(capture_date)))
+                (datetime.now(tz=utc) - timestamp2datetime(capture_date).replace(tzinfo=utc)))
 
     def capture_date_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
