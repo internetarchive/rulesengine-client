@@ -8,8 +8,9 @@ setup(
     install_requires=[
         'psycopg2',
         'python-dateutil',
-        'ipaddr',
         'pytz',
+        'google-re2',
+        'ipaddr',
         'requests',
     ],
     tests_require=[
