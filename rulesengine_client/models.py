@@ -368,14 +368,15 @@ class RuleCollection(object):
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
         """
-        self.rules = [rule for rule in self.rules if rule.applies(
+        applicable_rules = RuleCollection([rule for rule in self.rules if rule.applies(
             warc_name,
             capture_date=capture_date,
             collection=collection,
             partner=partner,
             protocol=protocol,
-            server_side_filters=server_side_filters)]
-        self.sort_rules()
+            server_side_filters=server_side_filters)])
+        applicable_rules.sort_rules()
+        return applicable_rules
 
     def allow(self):
         """Decides whether to allow a playback based on the collection of
