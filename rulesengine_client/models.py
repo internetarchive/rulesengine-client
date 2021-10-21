@@ -21,9 +21,10 @@ class Rule(object):
 
     def __init__(self, surt, policy, neg_surt=None, capture_date=None,
                  retrieve_date=None, ip_range=None, seconds_since_capture=None,
-                 collection=None, partner=None, protocol=None, warc_match=None,
-                 rewrite_from=None, rewrite_to=None, private_comment=None,
-                 public_comment=None, enabled=True, environment='prod'):
+                 collection=None, partner=None, protocol=None, subdomain=None,
+                 warc_match=None, rewrite_from=None, rewrite_to=None,
+                 private_comment=None, public_comment=None, enabled=True,
+                 environment='prod'):
         self.surt = surt
         self.policy = policy
         self.neg_surt = neg_surt
@@ -31,6 +32,7 @@ class Rule(object):
         self.collection = collection
         self.partner = partner
         self.protocol = protocol
+        self.subdomain = subdomain
         self.warc_match = warc_match
         self.rewrite_from = rewrite_from
         self.rewrite_to = rewrite_to
@@ -127,6 +129,7 @@ class Rule(object):
         collection=response.get('collection')
         partner=response.get('partner')
         protocol=response.get('protocol')
+        subdomain=response.get('subdomain')
         warc_match=response.get('warc_match')
         rewrite_from=response.get('rewrite_from')
         rewrite_to=response.get('rewrite_to')
@@ -143,6 +146,7 @@ class Rule(object):
             collection = collection if collection else None,
             partner = partner if partner else None,
             protocol = protocol if protocol else None,
+            subdomain = subdomain if subdomain else None,
             warc_match = warc_match.encode() if warc_match else None,
             rewrite_from = rewrite_from.encode() if rewrite_from else None,
             rewrite_to = rewrite_to.encode() if rewrite_to else None,
@@ -152,7 +156,8 @@ class Rule(object):
 
     def applies(self, warc_name, capture_date, client_ip=None,
                 retrieve_date=datetime.now(tz=utc), collection=None,
-                partner=None, protocol=None, server_side_filters=True):
+                partner=None, protocol=None, subdomain=None,
+                server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
         information.
 
@@ -163,6 +168,7 @@ class Rule(object):
         :param str collection: the collection to which the capture belongs.
         :param str partner: the partner to which the capture belongs.
         :param str protocol: the protocol of the capture.
+        :param str subdomain: the subdomain of the capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -172,6 +178,7 @@ class Rule(object):
         if server_side_filters:
             return (self.warc_match_applies(warc_name) and
                     self.protocol_applies(protocol) and
+                    self.subdomain_applies(subdomain) and
                     self.seconds_since_capture_applies(capture_date))
 
         return (
@@ -181,6 +188,7 @@ class Rule(object):
             self.warc_match_applies(warc_name) and
             self.collection_applies(collection) and
             self.partner_applies(partner) and
+            self.subdomain_applies(subdomain) and
             self.protocol_applies(protocol))
 
     def ip_range_applies(self, client_ip):
@@ -218,6 +226,22 @@ class Rule(object):
         if self.protocol is None:
             return True
         return self.protocol == protocol
+
+    def subdomain_applies(self, subdomain):
+        """Check to see whether the rule applies based on the query subdomain.
+
+        If the rule defines a canonicalized subdomain to match, we check to see
+        if the query subdomain matches.
+
+        :param subdomain: the query's subdomain
+        :type subdomain: str
+
+        :return: True if the rule defines no subdomain, or rule subdomain
+        matches param subdomain, otherwise False.
+        """
+        if self.subdomain is None:
+            return True
+        return self.subdomain == subdomain
 
     def seconds_since_capture_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
@@ -350,7 +374,7 @@ class RuleCollection(object):
     def filter_applicable_rules(self, warc_name, client_ip=None, capture_date=None,
                                 retrieve_date=datetime.now(tz=utc),
                                 collection=None, partner=None, protocol=None,
-                                server_side_filters=True):
+                                subdomain=None, server_side_filters=True):
         """Filters the rules to only those which apply to the request.
 
         Before checking whether a request is allowed or applying any rewrites,
@@ -364,6 +388,7 @@ class RuleCollection(object):
         :param str collection: the collection to which the capture belongs.
         :param str partner: the partner to which the capture belongs.
         :param str protocol: the protocol of the capture.
+        :param str subdomain: the subdomain of the capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -374,6 +399,7 @@ class RuleCollection(object):
             collection=collection,
             partner=partner,
             protocol=protocol,
+            subdomain=subdomain,
             server_side_filters=server_side_filters)])
         applicable_rules.sort_rules()
         return applicable_rules
