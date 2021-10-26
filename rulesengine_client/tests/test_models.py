@@ -41,6 +41,7 @@ class RuleModelTestCase(unittest.TestCase):
             collection='The Planets',
             partner='Gustav Holst',
             protocol='http',
+            subdomain='www',
             warc_match='.*jupiter.*')
         self.assertEqual(
             rule.capture_date['start'],
@@ -63,8 +64,12 @@ class RuleModelTestCase(unittest.TestCase):
         self.assertEqual(
             rule.protocol,
             'http')
+        self.assertEqual(
+            rule.subdomain,
+            'www')
 
     @patch('rulesengine_client.models.Rule.protocol_applies')
+    @patch('rulesengine_client.models.Rule.subdomain_applies')
     @patch('rulesengine_client.models.Rule.ip_range_applies')
     @patch('rulesengine_client.models.Rule.seconds_since_capture_applies')
     @patch('rulesengine_client.models.Rule.capture_date_applies')
@@ -75,12 +80,13 @@ class RuleModelTestCase(unittest.TestCase):
     def test_applies(self, partner_applies, collection_applies,
                      warc_match_applies, retrieve_date_applies,
                      capture_date_applies, seconds_since_capture_applies,
-                     ip_range_applies, protocol_applies):
+                     ip_range_applies, protocol_applies, subdomain_applies):
         rule = Rule('http://(com,example,)', 'block')
         rule.applies('warc', '0.0.0.0', datetime.now(tz=utc))
         self.assertEqual(warc_match_applies.call_count, 1)
         self.assertEqual(seconds_since_capture_applies.call_count, 1)
         self.assertEqual(protocol_applies.call_count, 1)
+        self.assertEqual(subdomain_applies.call_count, 1)
         self.assertEqual(capture_date_applies.call_count, 0)
         self.assertEqual(retrieve_date_applies.call_count, 0)
         self.assertEqual(collection_applies.call_count, 0)
@@ -90,6 +96,7 @@ class RuleModelTestCase(unittest.TestCase):
                      server_side_filters=False)
         self.assertEqual(seconds_since_capture_applies.call_count, 2)
         self.assertEqual(protocol_applies.call_count, 2)
+        self.assertEqual(subdomain_applies.call_count, 2)
         self.assertEqual(warc_match_applies.call_count, 2)
         self.assertEqual(capture_date_applies.call_count, 1)
         self.assertEqual(retrieve_date_applies.call_count, 1)
@@ -195,6 +202,18 @@ class RuleModelTestCase(unittest.TestCase):
             'block')
         self.assertEqual(rule.protocol_applies('https'), True)
 
+    def test_subdomain_applies(self):
+        rule = Rule(
+            'http://(com,example,)',
+            'block',
+            subdomain='www')
+        self.assertEqual(rule.subdomain_applies('www'), True)
+        self.assertEqual(rule.subdomain_applies('web'), False)
+        rule = Rule(
+            'http://(com,example,)',
+            'block')
+        self.assertEqual(rule.subdomain_applies('web'), True)
+
 class RuleCollectionModelTestCase(unittest.TestCase):
 
     def test_init_and_sort(self):
@@ -218,10 +237,10 @@ class RuleCollectionModelTestCase(unittest.TestCase):
             Rule('http://(com,example,c)', 'block', partner='Holst'),
             Rule('http://(com,example,b)', 'block', partner='Bizet'),
         ])
-        collection.filter_applicable_rules(
-            'warc', '0.0.0.0', partner='Holst', server_side_filters=False)
+        applicable_rules = collection.filter_applicable_rules(
+            'warc', partner='Holst', server_side_filters=False)
         self.assertEqual(
-            [rule.surt for rule in collection.rules],
+            [rule.surt for rule in applicable_rules.rules],
             [
                 'http://(com,example,a)',
                 'http://(com,example,c)',

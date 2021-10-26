@@ -67,7 +67,7 @@ class Client(object):
                        'retrieve_date_start, retrieve_date_end, '
                        'seconds_since_capture, '
                        'ip_range_start, ip_range_end, '
-                       'environment, protocol '
+                       'environment, protocol, subdomain '
                        'from rules_rule where %s like surt and enabled = true'
                        )
         if collection:
