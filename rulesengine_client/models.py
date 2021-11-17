@@ -179,6 +179,8 @@ class Rule(object):
             self.capture_date_applies(capture_date) and
             self.retrieve_date_applies(retrieve_date) and
             self.warc_match_applies(warc_name) and
+            self.collection_applies(collection) and
+            self.partner_applies(partner) and
             self.protocol_applies(protocol))
 
     def ip_range_applies(self, client_ip):
@@ -369,6 +371,8 @@ class RuleCollection(object):
         applicable_rules = RuleCollection([rule for rule in self.rules if rule.applies(
             warc_name,
             capture_date=capture_date,
+            collection=collection,
+            partner=partner,
             protocol=protocol,
             server_side_filters=server_side_filters)])
         applicable_rules.sort_rules()
