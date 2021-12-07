@@ -129,7 +129,7 @@ class Rule(object):
         collection=response.get('collection')
         partner=response.get('partner')
         protocol=response.get('protocol')
-        subdomain=response.get('subdomain')
+        #subdomain=response.get('subdomain')
         warc_match=response.get('warc_match')
         rewrite_from=response.get('rewrite_from')
         rewrite_to=response.get('rewrite_to')
@@ -146,7 +146,7 @@ class Rule(object):
             collection = collection if collection else None,
             partner = partner if partner else None,
             protocol = protocol if protocol else None,
-            subdomain = subdomain if subdomain else None,
+            #subdomain = subdomain if subdomain else None,
             warc_match = warc_match.encode() if warc_match else None,
             rewrite_from = rewrite_from.encode() if rewrite_from else None,
             rewrite_to = rewrite_to.encode() if rewrite_to else None,
@@ -178,7 +178,7 @@ class Rule(object):
         if server_side_filters:
             return (self.warc_match_applies(warc_name) and
                     self.protocol_applies(protocol) and
-                    self.subdomain_applies(subdomain) and
+                    #self.subdomain_applies(subdomain) and
                     self.seconds_since_capture_applies(capture_date))
 
         return (
@@ -188,7 +188,7 @@ class Rule(object):
             self.warc_match_applies(warc_name) and
             self.collection_applies(collection) and
             self.partner_applies(partner) and
-            self.subdomain_applies(subdomain) and
+            #self.subdomain_applies(subdomain) and
             self.protocol_applies(protocol))
 
     def ip_range_applies(self, client_ip):
@@ -399,7 +399,7 @@ class RuleCollection(object):
             collection=collection,
             partner=partner,
             protocol=protocol,
-            subdomain=subdomain,
+            #subdomain=subdomain,
             server_side_filters=server_side_filters)])
         applicable_rules.sort_rules()
         return applicable_rules

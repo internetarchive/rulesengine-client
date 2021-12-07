@@ -59,6 +59,7 @@ class Client(object):
 
     def rules_from_postgres(self, surt, capture_date, neg_surt=None,
                             collection=None, partner=None):
+        #'environment, protocol, subdomain '
         query_start = ('SELECT policy, surt, '
                        'capture_date_start, capture_date_end, '
                        'collection, partner, '
@@ -67,7 +68,7 @@ class Client(object):
                        'retrieve_date_start, retrieve_date_end, '
                        'seconds_since_capture, '
                        'ip_range_start, ip_range_end, '
-                       'environment, protocol, subdomain '
+                       'environment, protocol '
                        'from rules_rule where %s like surt and enabled = true'
                        )
         if collection:
