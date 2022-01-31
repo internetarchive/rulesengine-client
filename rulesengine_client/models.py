@@ -237,7 +237,7 @@ class Rule(object):
         :type subdomain: str
 
         :return: True if the rule defines no subdomain, or rule subdomain
-        matches param subdomain, otherwise False.
+        matches param subdomain.
         """
         if self.subdomain is None:
             return True
