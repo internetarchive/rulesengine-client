@@ -207,12 +207,12 @@ class RuleModelTestCase(unittest.TestCase):
             'http://(com,example,)',
             'block',
             subdomain='www')
-        self.assertEqual(rule.subdomain_applies('www'), True)
-        self.assertEqual(rule.subdomain_applies('web'), False)
+        self.assertTrue(rule.subdomain_applies('www'))
+        self.assertFalse(rule.subdomain_applies('web'))
         rule = Rule(
             'http://(com,example,)',
             'block')
-        self.assertEqual(rule.subdomain_applies('web'), True)
+        self.assertTrue(rule.subdomain_applies('web'))
 
 class RuleCollectionModelTestCase(unittest.TestCase):
 
