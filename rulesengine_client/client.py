@@ -74,10 +74,10 @@ class Client(object):
             query_end = " and (collection = %s or (collection = '' and partner = ''));"
             who = collection
         elif partner:
-            query_end = " and (partner = %s or (partner = '' and collection = ''));"
+            query_end = " and (partner = %s or (collection = '' and partner = ''));"
             who = partner
-        else:
-            query_end = ';'
+        else: # all endpoint
+            query_end = " and (collection = '' and partner = '');"
             who = None
         rules_query = ''.join([query_start, query_end])
         try:
