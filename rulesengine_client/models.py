@@ -155,9 +155,8 @@ class Rule(object):
             environment = environment)
 
     def applies(self, warc_name, capture_date, client_ip=None,
-                retrieve_date=datetime.now(tz=utc), collection=None,
-                partner=None, protocol=None, subdomain=None,
-                server_side_filters=True):
+                retrieve_date=datetime.now(tz=utc), protocol=None,
+                subdomain=None, server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
         information.
 
@@ -165,8 +164,6 @@ class Rule(object):
         :param client_ip: the client's IP address
         :type client_ip: str or ipaddr.IPv[46]Address
         :param bytes timestamp capture_date: the date of the requested capture.
-        :param str collection: the collection to which the capture belongs.
-        :param str partner: the partner to which the capture belongs.
         :param str protocol: the protocol of the capture.
         :param str subdomain: the subdomain of the capture.
         :param bool server_side_filters: whether or not filters have already
@@ -186,14 +183,12 @@ class Rule(object):
             self.capture_date_applies(capture_date) and
             self.retrieve_date_applies(retrieve_date) and
             self.warc_match_applies(warc_name) and
-            self.collection_applies(collection) and
-            self.partner_applies(partner) and
             self.subdomain_applies(subdomain) and
             self.protocol_applies(protocol))
 
     def ip_range_applies(self, client_ip):
         """Checks to see whether the rule applies based on the client's IP
-        address.
+        address. UNUSED 2022-03
 
         If the rule has an associated IP range, it will check to see wether the
         client's IP falls within that range. If not, it's assumed that the rule
@@ -309,38 +304,7 @@ class Rule(object):
             return True
         return re.search(self.warc_match, warc_name) is not None
 
-    def collection_applies(self, collection):
-        """Checks to see whether the rule applies based on the capture's
-        collection.
-
-        If the rule has an collection, it will check to see wether the
-        capture's collection matches. If not, it's assumed that the
-        rule applies.
-
-        :param str collection: the collection.
-
-        :return: True if the rule applies for this check, otherwise False.
-        """
-        if self.collection is None:
-            return True
-        return self.collection == collection
-
-    def partner_applies(self, partner):
-        """Checks to see whether the rule applies based on the capture's
-        partner.
-
-        If the rule has a partner, it will check to see whether the
-        capture's partner matches. If not, it's assumed that the
-        rule applies.
-
-        :param str partner: the partner.
-
-        :return: True if the rule applies for this check, otherwise False.
-        """
-        if self.partner is None:
-            return True
         return self.partner == partner
-
 
 class RuleCollection(object):
     """RuleCollection represents a group of rules applying to a request."""
@@ -373,8 +337,8 @@ class RuleCollection(object):
 
     def filter_applicable_rules(self, warc_name, client_ip=None, capture_date=None,
                                 retrieve_date=datetime.now(tz=utc),
-                                collection=None, partner=None, protocol=None,
-                                subdomain=None, server_side_filters=True):
+                                protocol=None, subdomain=None,
+                                server_side_filters=True):
         """Filters the rules to only those which apply to the request.
 
         Before checking whether a request is allowed or applying any rewrites,
@@ -385,8 +349,6 @@ class RuleCollection(object):
         :param client_ip: the client's IP address
         :type client_ip: str or ipaddr.IPv[46]Address
         :param bytes timestamp capture_date: the date of the requested capture.
-        :param str collection: the collection to which the capture belongs.
-        :param str partner: the partner to which the capture belongs.
         :param str protocol: the protocol of the capture.
         :param str subdomain: the subdomain of the capture.
         :param bool server_side_filters: whether or not filters have already
@@ -396,8 +358,6 @@ class RuleCollection(object):
         applicable_rules = RuleCollection([rule for rule in self.rules if rule.applies(
             warc_name,
             capture_date=capture_date,
-            collection=collection,
-            partner=partner,
             protocol=protocol,
             subdomain=subdomain,
             server_side_filters=server_side_filters)])

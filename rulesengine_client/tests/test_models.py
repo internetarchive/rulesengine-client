@@ -75,10 +75,7 @@ class RuleModelTestCase(unittest.TestCase):
     @patch('rulesengine_client.models.Rule.capture_date_applies')
     @patch('rulesengine_client.models.Rule.retrieve_date_applies')
     @patch('rulesengine_client.models.Rule.warc_match_applies')
-    @patch('rulesengine_client.models.Rule.collection_applies')
-    @patch('rulesengine_client.models.Rule.partner_applies')
-    def test_applies(self, partner_applies, collection_applies,
-                     warc_match_applies, retrieve_date_applies,
+    def test_applies(self, warc_match_applies, retrieve_date_applies,
                      capture_date_applies, seconds_since_capture_applies,
                      ip_range_applies, protocol_applies, subdomain_applies):
         rule = Rule('http://(com,example,)', 'block')
@@ -89,8 +86,6 @@ class RuleModelTestCase(unittest.TestCase):
         self.assertEqual(subdomain_applies.call_count, 1)
         self.assertEqual(capture_date_applies.call_count, 0)
         self.assertEqual(retrieve_date_applies.call_count, 0)
-        self.assertEqual(collection_applies.call_count, 0)
-        self.assertEqual(partner_applies.call_count, 0)
         self.assertEqual(ip_range_applies.call_count, 0)
         rule.applies('warc', '0.0.0.0', datetime.now(tz=utc),
                      server_side_filters=False)
@@ -100,8 +95,6 @@ class RuleModelTestCase(unittest.TestCase):
         self.assertEqual(warc_match_applies.call_count, 2)
         self.assertEqual(capture_date_applies.call_count, 1)
         self.assertEqual(retrieve_date_applies.call_count, 1)
-        self.assertEqual(collection_applies.call_count, 1)
-        self.assertEqual(partner_applies.call_count, 1)
         self.assertEqual(ip_range_applies.call_count, 0)
 
     def test_ip_range_applies(self):
@@ -166,30 +159,6 @@ class RuleModelTestCase(unittest.TestCase):
                 retrieve_date=datetime(2000, 1, 1, tzinfo=utc)),
             False)
 
-    def test_collection_applies(self):
-        rule = Rule(
-            'http://(com,example,)',
-            'block',
-            collection='Planets')
-        self.assertEqual(rule.collection_applies('Planets'), True)
-        self.assertEqual(rule.collection_applies('bad-wolf'), False)
-        rule = Rule(
-            'http://(com,example,)',
-            'block')
-        self.assertEqual(rule.collection_applies('Planets'), True)
-
-    def test_partner_applies(self):
-        rule = Rule(
-            'http://(com,example,)',
-            'block',
-            partner='Holst')
-        self.assertEqual(rule.partner_applies('Holst'), True)
-        self.assertEqual(rule.partner_applies('bad-wolf'), False)
-        rule = Rule(
-            'http://(com,example,)',
-            'block')
-        self.assertEqual(rule.partner_applies('Holst'), True)
-
     def test_protocol_applies(self):
         rule = Rule(
             'http://(com,example,)',
@@ -233,12 +202,12 @@ class RuleCollectionModelTestCase(unittest.TestCase):
 
     def test_filter_applicable_rules(self):
         collection = RuleCollection([
-            Rule('http://(com,example,a)', 'block', partner='Holst'),
-            Rule('http://(com,example,c)', 'block', partner='Holst'),
-            Rule('http://(com,example,b)', 'block', partner='Bizet'),
+            Rule('http://(com,example,a)', 'block', warc_match='Holst'),
+            Rule('http://(com,example,c)', 'block', warc_match='Holst'),
+            Rule('http://(com,example,b)', 'block', warc_match='Bizet'),
         ])
         applicable_rules = collection.filter_applicable_rules(
-            'warc', partner='Holst', server_side_filters=False)
+            'Holst', server_side_filters=False)
         self.assertEqual(
             [rule.surt for rule in applicable_rules.rules],
             [
