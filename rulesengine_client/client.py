@@ -59,27 +59,17 @@ class Client(object):
 
     def rules_from_postgres(self, surt, capture_date, neg_surt=None,
                             collection=None, partner=None):
-        query_start = ('SELECT policy, surt, '
-                       'capture_date_start, capture_date_end, '
-                       'collection, partner, '
-                       'rewrite_from, rewrite_to, '
-                       'warc_match, neg_surt, '
-                       'retrieve_date_start, retrieve_date_end, '
-                       'seconds_since_capture, '
-                       'ip_range_start, ip_range_end, '
-                       'environment, protocol, subdomain '
-                       'from rules_rule where %s like surt and enabled = true'
-                       )
+        query_start = 'SELECT * from rules_rule where %s like surt and enabled = true'
         if collection:
-            query_end = " and (collection = %s or collection = '');"
+            query_end = " and (collection = %s or (collection = '' and partner = ''));"
             who = collection
         elif partner:
-            query_end = " and (partner = %s or partner = '');"
+            query_end = " and (partner = %s or (collection = '' and partner = ''));"
             who = partner
-        else:
-            query_end = ';'
+        else: # all endpoint
+            query_end = " and (collection = '' and partner = '');"
             who = None
-        rules_query = ''.join([query_start, query_end])
+        rules_query = f'{query_start}{query_end}'
         try:
             conn = psycopg2.connect(self.datasource,
                     cursor_factory=extras.DictCursor)
