@@ -405,12 +405,9 @@ class RuleCollection(object):
         content_r = response.data
         for r in self.rules:
             if r.policy == 'rewrite-headers':
-                #  todo: support rewrite-headers, use, e.g.,
-                #   response.headers['X-Archive-Guessed-Content-Type']
                 #  is this bytes or string?
-                #  also, we're rewriting only "rewritable" mimetypes in wsgiapp.py
-                self._log.warn(f'rulesengine policy rewrite-headers to be implemented')
-                continue
+                #  note: we're rewriting only "rewritable" mimetypes in wsgiapp.py
+                headers_r[r.rewrite_from] = r.rewrite_to
             if r.policy == 'rewrite-all':
                 try:
                     content_r = re.sub(r.rewrite_from, r.rewrite_to, content_r, options=re2_options)
