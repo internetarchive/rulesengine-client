@@ -423,3 +423,10 @@ class RuleCollection(object):
                 self._log.warn('unexpected policy; nothing rewritten!')
         return headers_r, content_r
 
+    def skip_js_frame_only(self):
+        """Finds only the rules with skip_js_frame policy.
+
+        :return: A new RuleCollection with only skip_js_frame rules.
+        """
+        return RuleCollection(
+            [rule for rule in self.rules if rule.policy == 'skip-js-frame')])
