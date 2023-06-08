@@ -429,4 +429,4 @@ class RuleCollection(object):
         :return: A new RuleCollection with only skip_js_frame rules.
         """
         return RuleCollection(
-            [rule for rule in self.rules if rule.policy == 'skip-js-frame')])
+            [rule for rule in self.rules if rule.policy == 'skip-js-frame'])
