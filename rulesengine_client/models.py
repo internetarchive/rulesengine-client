@@ -10,7 +10,7 @@ import logging
 from pytz import utc
 import re2 as re
 
-from .exceptions import MalformedResponseException
+from .exceptions import MalformedResponseException, BlockWithMessageException
 
 # more python re2 code examples: https://github.com/google/re2/blob/abseil/python/re2_test.py
 re2_options = re.Options()
@@ -370,22 +370,24 @@ class RuleCollection(object):
 
         :return: True if the playback is allowed.
         """
-        policies = [rule.policy for rule in self.rules]
         allow = True
         message = False
-        for policy in policies:
+        block_reason = "blocked"
+        for rule in self.rules:
+            policy = rule.policy
             # Allow decisions only rely on 'allow' and 'block' policies. No
             # decision is made for rewrite policies.
-            if policy == 'allow':
+            if policy == "allow":
                 allow = True
-            elif policy == 'block':
+            elif policy == "block":
                 allow = False
-            elif policy == 'message':
+            elif policy == "message":
                 allow = False
                 message = True
+                block_reason = rule.public_comment
         if message and not allow:
-            self._log.warning('blocking url')
-            raise BlockedException
+            self._log.warning("blocking url: %s", block_reason)
+            raise BlockWithMessageException(block_reason)
         return allow
 
     def rewrites_only(self):
