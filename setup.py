@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name='rulesengine_client',
     description='Client for interacting with the playback Rules Engine',
-    version='1.1b',
+    version='1.2b',
     install_requires=[
         'psycopg2',
         'python-dateutil',
