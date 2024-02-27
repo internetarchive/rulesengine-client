@@ -156,7 +156,7 @@ class Rule(object):
 
     def applies(self, warc_name, capture_date, client_ip=None,
                 retrieve_date=datetime.now(tz=utc), protocol=None,
-                subdomain=None, server_side_filters=True):
+                subdomain=None, status_code=None, server_side_filters=True):
         """Checks to see whether a rule applies given request and playback
         information.
 
@@ -166,6 +166,7 @@ class Rule(object):
         :param bytes timestamp capture_date: the date of the requested capture.
         :param str protocol: the protocol of the capture.
         :param str subdomain: the subdomain of the capture.
+        :param str status_code: the HTTP status code of the requested capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -184,7 +185,9 @@ class Rule(object):
             self.retrieve_date_applies(retrieve_date) and
             self.warc_match_applies(warc_name) and
             self.subdomain_applies(subdomain) and
-            self.protocol_applies(protocol))
+            self.protocol_applies(protocol) and
+            self.status_code_applies(status_code)
+        )
 
     def ip_range_applies(self, client_ip):
         """Checks to see whether the rule applies based on the client's IP
@@ -237,6 +240,19 @@ class Rule(object):
         if self.subdomain is None:
             return True
         return self.subdomain == subdomain
+
+    def status_code_applies(self, status_code):
+        """Check to see whether the rule applies based on the HTTP status code.
+
+        :param status_code: the query's HTTP status code
+        :type status_code: int
+
+        :return: True if the rule defines no status_code , or rule status_code
+        matches param status_code, otherwise False.
+        """
+        if self.status_code is None:
+            return True
+        return self.status_code == status_code
 
     def seconds_since_capture_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
@@ -337,7 +353,7 @@ class RuleCollection(object):
 
     def filter_applicable_rules(self, warc_name, client_ip=None, capture_date=None,
                                 retrieve_date=datetime.now(tz=utc),
-                                protocol=None, subdomain=None,
+                                protocol=None, subdomain=None, status_code=None,
                                 server_side_filters=True):
         """Filters the rules to only those which apply to the request.
 
@@ -351,6 +367,7 @@ class RuleCollection(object):
         :param bytes timestamp capture_date: the date of the requested capture.
         :param str protocol: the protocol of the capture.
         :param str subdomain: the subdomain of the capture.
+        :param str status_code: the HTTP status code of the capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -360,6 +377,7 @@ class RuleCollection(object):
             capture_date=capture_date,
             protocol=protocol,
             subdomain=subdomain,
+            status_code=status_code,
             server_side_filters=server_side_filters)])
         applicable_rules.sort_rules()
         return applicable_rules
