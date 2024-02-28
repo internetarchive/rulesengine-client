@@ -22,7 +22,7 @@ class Rule(object):
     def __init__(self, surt, policy, neg_surt=None, capture_date=None,
                  retrieve_date=None, ip_range=None, seconds_since_capture=None,
                  collection=None, partner=None, protocol=None, subdomain=None,
-                 warc_match=None, rewrite_from=None, rewrite_to=None,
+                 status_code=None, warc_match=None, rewrite_from=None, rewrite_to=None,
                  private_comment=None, public_comment=None, enabled=True,
                  environment='prod'):
         self.surt = surt
@@ -32,6 +32,7 @@ class Rule(object):
         self.collection = collection
         self.partner = partner
         self.protocol = protocol
+        self.status_code = status_code
         self.subdomain = subdomain
         self.warc_match = warc_match
         self.rewrite_from = rewrite_from
@@ -129,6 +130,7 @@ class Rule(object):
         collection=response.get('collection')
         partner=response.get('partner')
         protocol=response.get('protocol')
+        status_code=response.get('status_code')
         subdomain=response.get('subdomain')
         warc_match=response.get('warc_match')
         rewrite_from=response.get('rewrite_from')
@@ -146,6 +148,7 @@ class Rule(object):
             collection = collection if collection else None,
             partner = partner if partner else None,
             protocol = protocol if protocol else None,
+            status_code = status_code if status_code else None,
             subdomain = subdomain if subdomain else None,
             warc_match = warc_match.encode() if warc_match else None,
             rewrite_from = rewrite_from.encode() if rewrite_from else None,
@@ -176,6 +179,7 @@ class Rule(object):
         if server_side_filters:
             return (self.warc_match_applies(warc_name) and
                     self.protocol_applies(protocol) and
+                    self.status_code_applies(protocol) and
                     self.subdomain_applies(subdomain) and
                     self.seconds_since_capture_applies(capture_date))
 
