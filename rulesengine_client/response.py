@@ -10,13 +10,14 @@ class Response(object):
             self.json = response.json()
         except ValueError:
             raise MalformedResponseException(
-                'received non-JSON response', response.body)
-        self.status = self.json['status']
-        self.message = self.json['message']
-        if 'result' in self.json:
-            self.result = self.json['result']
+                "received non-JSON response", response.body
+            )
+        self.status = self.json["status"]
+        self.message = self.json["message"]
+        if "result" in self.json:
+            self.result = self.json["result"]
         self.rules = None
-        if self.status == 'success':
+        if self.status == "success":
             self._parse_result()
 
     def _parse_result(self):
@@ -25,5 +26,4 @@ class Response(object):
         elif isinstance(self.result, dict):
             self.rules = RuleCollection.from_response([self.result])
         else:
-            raise MalformedResponseException(
-                'received unexpected result', self.result)
+            raise MalformedResponseException("received unexpected result", self.result)

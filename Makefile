@@ -6,6 +6,10 @@ venv/bin/python:
 install: venv/bin/python
 	venv/bin/python setup.py install
 
+.PHONY: format
+format: 
+	venv/bin/black -t py37 -t py38 -t py39 -t py310 -t py311 -t py312 .
+
 .PHONY: check
 check: test lint
 
