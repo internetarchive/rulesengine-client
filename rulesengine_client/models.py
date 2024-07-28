@@ -34,6 +34,7 @@ class Rule(object):
         protocol=None,
         subdomain=None,
         status_code=None,
+        content_type=None,
         warc_match=None,
         rewrite_from=None,
         rewrite_to=None,
@@ -50,6 +51,7 @@ class Rule(object):
         self.partner = partner
         self.protocol = protocol
         self.status_code = status_code
+        self.content_type = content_type
         self.subdomain = subdomain
         self.warc_match = warc_match
         self.rewrite_from = rewrite_from
@@ -158,6 +160,7 @@ class Rule(object):
         partner = response.get("partner")
         protocol = response.get("protocol")
         status_code = response.get("status_code")
+        content_type = response.get("content_type")
         subdomain = response.get("subdomain")
         warc_match = response.get("warc_match")
         rewrite_from = response.get("rewrite_from")
@@ -176,6 +179,7 @@ class Rule(object):
             partner=partner if partner else None,
             protocol=protocol if protocol else None,
             status_code=status_code if status_code else None,
+            content_type=content_type if content_type else None,
             subdomain=subdomain if subdomain else None,
             warc_match=warc_match.encode() if warc_match else None,
             rewrite_from=rewrite_from.encode() if rewrite_from else None,
@@ -194,6 +198,7 @@ class Rule(object):
         protocol=None,
         subdomain=None,
         status_code=None,
+        content_type=None,
         server_side_filters=True,
     ):
         """Checks to see whether a rule applies given request and playback
@@ -206,6 +211,7 @@ class Rule(object):
         :param str protocol: the protocol of the capture.
         :param str subdomain: the subdomain of the capture.
         :param str status_code: the HTTP status code of the requested capture.
+        :param str content_type: the content-type of the requested capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -216,7 +222,8 @@ class Rule(object):
             return (
                 self.warc_match_applies(warc_name)
                 and self.protocol_applies(protocol)
-                and self.status_code_applies(protocol)
+                and self.status_code_applies(status_code)
+                and self.content_type_applies(content_type)
                 and self.subdomain_applies(subdomain)
                 and self.seconds_since_capture_applies(capture_date)
             )
@@ -229,6 +236,7 @@ class Rule(object):
             and self.subdomain_applies(subdomain)
             and self.protocol_applies(protocol)
             and self.status_code_applies(status_code)
+            and self.content_type_applies(content_type)
         )
 
     def ip_range_applies(self, client_ip):
@@ -294,6 +302,19 @@ class Rule(object):
         if self.status_code is None:
             return True
         return self.status_code == status_code
+
+    def content_type_applies(self, content_type):
+        """Check to see whether the rule applies based on the content-type.
+
+        :param content_type: the query's content-type
+        :type content_type: str
+
+        :return: True if the rule defines no content_type, or rule content_type
+        matches param content_type, otherwise False.
+        """
+        if self.content_type is None:
+            return True
+        return self.content_type == content_type
 
     def seconds_since_capture_applies(self, capture_date):
         """Checks to see whether the rule applies based on the date of
@@ -407,6 +428,7 @@ class RuleCollection(object):
         protocol=None,
         subdomain=None,
         status_code=None,
+        content_type=None,
         server_side_filters=True,
     ):
         """Filters the rules to only those which apply to the request.
@@ -422,6 +444,7 @@ class RuleCollection(object):
         :param str protocol: the protocol of the capture.
         :param str subdomain: the subdomain of the capture.
         :param str status_code: the HTTP status code of the capture.
+        :param str content_type: the content-type of the capture.
         :param bool server_side_filters: whether or not filters have already
             been run server side. This includes capture and retrieval dates,
             collection, and partner.
@@ -436,6 +459,7 @@ class RuleCollection(object):
                     protocol=protocol,
                     subdomain=subdomain,
                     status_code=status_code,
+                    content_type=content_type,
                     server_side_filters=server_side_filters,
                 )
             ]

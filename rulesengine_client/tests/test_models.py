@@ -20,7 +20,6 @@ from ..models import (
 
 
 class RuleModelTestCase(unittest.TestCase):
-
     def test_init(self):
         rule = Rule(
             "http://(com,example,)",
@@ -43,6 +42,8 @@ class RuleModelTestCase(unittest.TestCase):
             partner="Gustav Holst",
             protocol="http",
             subdomain="www",
+            status_code="403",
+            content_type="image/gif",
             warc_match=".*jupiter.*",
         )
         self.assertEqual(rule.capture_date["start"], "2000-01-01T12:00:00.000Z")
@@ -53,9 +54,13 @@ class RuleModelTestCase(unittest.TestCase):
         self.assertEqual(rule.ip_range["end"], ipaddr.IPAddress("8.8.8.8"))
         self.assertEqual(rule.protocol, "http")
         self.assertEqual(rule.subdomain, "www")
+        self.assertEqual(rule.status_code, "403")
+        self.assertEqual(rule.content_type, "image/gif")
 
     @patch("rulesengine_client.models.Rule.protocol_applies")
     @patch("rulesengine_client.models.Rule.subdomain_applies")
+    @patch("rulesengine_client.models.Rule.status_code_applies")
+    @patch("rulesengine_client.models.Rule.content_type_applies")
     @patch("rulesengine_client.models.Rule.ip_range_applies")
     @patch("rulesengine_client.models.Rule.seconds_since_capture_applies")
     @patch("rulesengine_client.models.Rule.capture_date_applies")
@@ -70,6 +75,8 @@ class RuleModelTestCase(unittest.TestCase):
         ip_range_applies,
         protocol_applies,
         subdomain_applies,
+        status_code_applies,
+        content_type_applies,
     ):
         rule = Rule("http://(com,example,)", "block")
         rule.applies("warc", "0.0.0.0", datetime.now(tz=utc))
@@ -77,6 +84,8 @@ class RuleModelTestCase(unittest.TestCase):
         self.assertEqual(seconds_since_capture_applies.call_count, 1)
         self.assertEqual(protocol_applies.call_count, 1)
         self.assertEqual(subdomain_applies.call_count, 1)
+        self.assertEqual(status_code_applies.call_count, 1)
+        self.assertEqual(content_type_applies.call_count, 1)
         self.assertEqual(capture_date_applies.call_count, 0)
         self.assertEqual(retrieve_date_applies.call_count, 0)
         self.assertEqual(ip_range_applies.call_count, 0)
@@ -84,6 +93,8 @@ class RuleModelTestCase(unittest.TestCase):
         self.assertEqual(seconds_since_capture_applies.call_count, 2)
         self.assertEqual(protocol_applies.call_count, 2)
         self.assertEqual(subdomain_applies.call_count, 2)
+        self.assertEqual(status_code_applies.call_count, 2)
+        self.assertEqual(content_type_applies.call_count, 2)
         self.assertEqual(warc_match_applies.call_count, 2)
         self.assertEqual(capture_date_applies.call_count, 1)
         self.assertEqual(retrieve_date_applies.call_count, 1)
@@ -162,9 +173,22 @@ class RuleModelTestCase(unittest.TestCase):
         rule = Rule("http://(com,example,)", "block")
         self.assertTrue(rule.subdomain_applies("web"))
 
+    def test_status_code_applies(self):
+        rule = Rule("http://(com,example,)", "block", status_code="403")
+        self.assertEqual(rule.status_code_applies("403"), True)
+        self.assertEqual(rule.status_code_applies("503"), False)
+        rule = Rule("http://(com,example,)", "block")
+        self.assertEqual(rule.status_code_applies("503"), True)
+
+    def test_content_type_applies(self):
+        rule = Rule("http://(com,example,)", "block", content_type="image/gif")
+        self.assertTrue(rule.content_type_applies("image/gif"))
+        self.assertFalse(rule.content_type_applies("text/html"))
+        rule = Rule("http://(com,example,)", "block")
+        self.assertTrue(rule.content_type_applies("text/html"))
+
 
 class RuleCollectionModelTestCase(unittest.TestCase):
-
     def test_init_and_sort(self):
         rules = [
             Rule("http://(com,example,a)", "block"),
